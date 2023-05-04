@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "msufootballauto",
+  "private_key_id": "a47858fff82b3e1ae5f520fe66fa1bab84dedbaa",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDKZ+kGhtFiLijj\nddTez93FJQCCtf5m531z0UO5M9jnTs6SRRI1HYSp6zHVGOWrD0ulgRK5W6SyD731\n4pGlHD/P1wVkeq8BlQBm2miF4+ROgInini2vqLNyU+ja+Hr/M7r1eDgSEW56QkbB\nWSEZ5BP64ZUO2rkujo+X5vLuE1KH4/mklMh3caJUJFNQlvR/DvOHlFTFVvNalAFS\nkZH3U9TNMWdS30U0BQyEftl8/BZSEa6YYBfi7iA6Z5yeiZEXJKw4k5L8dNHpNEya\nzop6lCjHnT0AfWNCpY4V3QRP40R9f8CLH3xi+0X7Ho/f7C/1e+VjsE2Ckwhun6UU\nckAVOI4JAgMBAAECggEACyPS8HgFGClAONyoXacFJq+VqpwHp3RANFqlJpFS89Aj\nkGtayC+auJtoP7lCErshx7cl56vCkcZKBzl0GKlIXdEQy+nwrd6cigylShEz5Jow\nfJeGHi/jyHwTydF5O4iGVrJKK7xn3zS8njGgn8Ms0lcOFCY3oPdZsduVLUNE/JOX\ndIrj3I1qU3uk5xJqNkoA5+KU1MKVjl1uC4APwi5JusMGFtbWCEfpa5JnBQPnYS0f\nIKy+R5KucJODRZGOBaFkht/pS5aoTNyX9/+9FzCi5sVWWdpKwqiKZ6tETibyJBTN\nMHKTdKNDNRS9Zi/iSOudyEANeTtrFI+pHrs1x2JOgQKBgQDx0KYrr7HS4377c+pD\n0nEE4L4RHe2a+6fSg8OQKqUszmvb5R7sIn85J0JNe7Mwvn5mf/VGvmMCYl/KktQ2\nMsyNmJAAwdIPHB18/bMW8Q0truwe0GWe/y4aqGU0ZPIcUdKjxBR3C2L/NBnRM14T\nrlqItPLXU21qPzplqLZgkwPG0QKBgQDWR3Ooh8hoHELOH5RlrT2Jc7OmSEcvR+2k\n6Xuo7Iu+a06aspm/Z0Mh032EKxfltnVhYFJ59x+XZwtzbsyXob30crO24vzDQtdN\nVgNQaRyoGZj6eZNJjfeNh+SvzuPLDU3GvYyf6AuMPFdAoYjBBTQMkDu+D0mma2Lb\ndn+UqSoRuQKBgHSC3N3lvJ9o/7D2a+Sby9rW0p16txZatMTIufyHn6hUGUINRnXu\nNTB7iwW8WV1eG5cVhj+80gW/EnqPfnJSzZ5X6OKEgMrI+ChWMOkX4gql4p0COkR+\nnV84zfKNxN4CSqSfgGDPeraOCvZycpy3AGYoEW3Qg8KSjneW77DehQ5RAoGBAKVf\nYai4mneXEAvqnWnXSP3S+NwlPiMEXSkANTrKzJL6WCDWJAhvVoU9psohRAE6Tt8H\nKsAMdCoyEclVwrpnzqVg/Mfx6Od9p5J9BnPBm6c0kjcFKyICWgK11U3F21Izg0oV\nsfkbagYh76jmwhdNv7zOd/0X6Vxx1krP6mi+IcSpAoGAEAvuob+NDSSJb14iX7fw\n+cT0PIseCKfLplHcZ2LtMdu75zya2BSCkmD29g91IMIMvHZ66YL8AuwyLonFVEev\nSficSsYICN+wjnYtkRoiDpfIjDmp7xurF3ylZU2wQpFGSVt7NFcVvJRnVXtXzRLG\ngv4UerJ6aBsQ46/QdHM9LcY=\n-----END PRIVATE KEY-----\n",
+  "client_email": "msufootballauto@msufootballauto.iam.gserviceaccount.com",
+  "client_id": "110878513722715027631",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/msufootballauto%40msufootballauto.iam.gserviceaccount.com"
+}
