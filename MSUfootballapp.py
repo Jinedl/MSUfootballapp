@@ -253,7 +253,7 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
 class GoogleAccount(object):
     #Класс синглтон для установления связи с google-api
     __instance = None
-    __key = 'msufootballauto-a47858fff82b.json'
+    __key = 'key.json'
     __ga = None
 
     def __new__(cls):
