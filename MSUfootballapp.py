@@ -377,7 +377,7 @@ class GoogleSpreadsheet(DataSource):
 
         worksheet = self.__ds
         try:
-            cell = worksheet.find(key)#.lower())
+            cell = worksheet.find(key.lower())
         except:
             cell = None
         
@@ -400,7 +400,7 @@ class GoogleSpreadsheet(DataSource):
 
         worksheet = self.__ds
         try:
-            cell = worksheet.find(team)#.lower())
+            cell = worksheet.find(team.lower())
         except:
             cell = None
 
@@ -417,7 +417,7 @@ class GoogleSpreadsheet(DataSource):
     def get_font(self, key, size):
         worksheet = self.__ds
         try:
-            cell = worksheet.find(key)#.lower())
+            cell = worksheet.find(key.lower())
         except:
             cell = None
 
