@@ -235,8 +235,8 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
     covers = []
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        timetable = timetable[(timetable[12].isna() == False) &
-                              (timetable[12] != '')].reset_index(drop=True).copy()
+        timetable = timetable[(timetable[11].isna() == False) &
+                              (timetable[11] != '')].reset_index(drop=True).copy()
 
         date = date_to_str(date).lower()
         for i in timetable.index:
