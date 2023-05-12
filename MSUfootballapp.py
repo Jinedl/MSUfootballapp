@@ -151,7 +151,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         timetable = timetable[(timetable['Див'].str.contains('|'.join(tournaments)) == True) &
                               #(timetable['Див'].str.lower().str.contains('резерв') == False) &
                               (timetable['Счет'].str.lower().str.contains('перенос') == False) &
-                              (timetable'Счет'].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
+                              (timetable['Счет'].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
         weekday = timetable.iloc[0, 'ДН'].upper()
@@ -235,16 +235,16 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
     covers = []
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        timetable = timetable[(timetable[11].isna() == False) &
-                              (timetable[11] != '')].reset_index(drop=True).copy()
+        timetable = timetable[(timetable['Видео'].isna() == False) &
+                              (timetable['Видео'] != '')].reset_index(drop=True).copy()
 
         date = date_to_str(date).lower()
         for i in timetable.index:
             background_ = background_to_str(background, timetable.iloc[i, 4])
-            team_1 = timetable.iloc[i, 6].strip()
-            team_2 = timetable.iloc[i, 8].strip()
-            date_ = f'{date} {timetable.iloc[i, 2]}'
-            tournament = tournament_to_str(timetable.iloc[i, 4])
+            team_1 = timetable.iloc[i, 'Команда 1'].strip()
+            team_2 = timetable.iloc[i, 'Команда 2'].strip()
+            date_ = f'{date} {timetable.iloc[i, 'Время']}'
+            tournament = tournament_to_str(timetable.iloc[i, 'Див'])
             covers.append(make_cover(background_ds, background_, logo_ds, font_ds, font, team_1, team_2, date_, tournament))
 
     return covers
