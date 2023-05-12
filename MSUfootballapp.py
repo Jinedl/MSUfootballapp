@@ -148,18 +148,18 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         timetable = timetable_ds.get_timetable(date)
         #if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable[4].str.contains('|'.join(tournaments)) == True) & #isin(tournaments)) &
-                              #(timetable[4].str.lower().str.contains('резерв') == False) &
-                              (timetable[7].str.lower().str.contains('перенос') == False) &
-                              (timetable[7].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
+        timetable = timetable[(timetable['Див'].str.contains('|'.join(tournaments)) == True) &
+                              #(timetable['Див'].str.lower().str.contains('резерв') == False) &
+                              (timetable['Счет'].str.lower().str.contains('перенос') == False) &
+                              (timetable'Счет'].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
-        weekday = timetable.iloc[0, 1].upper()
+        weekday = timetable.iloc[0, 'ДН'].upper()
         weekday = weekday_to_str(weekday)
-        time = timetable.iloc[:, 2]
-        stadium = 'МГУ, '+timetable.iloc[:, 3]
-        tournament = timetable.iloc[:, 4]
-        teams = teams_to_str(timetable.iloc[:, 6].str.strip(), timetable.iloc[:, 8].str.strip(), shortname_ds)
+        time = timetable.iloc[:, 'Время']
+        stadium = 'МГУ, '+timetable.iloc[:, 'Поле']
+        tournament = timetable.iloc[:, 'Див']
+        teams = teams_to_str(timetable.iloc[:, 'Команда 1'].str.strip(), timetable.iloc[:, 'Команда 2'].str.strip(), shortname_ds)
         timetable = pd.DataFrame(columns=[f'{date} // {weekday}', ''])
         timetable.iloc[:, 0] = time+' // '+teams
         timetable.iloc[:, 1] = tournament+' // '+stadium
@@ -356,41 +356,33 @@ class GoogleSpreadsheet(DataSource):
     def get_timetable(self, date):
 
         worksheet = self.__ds
+        timetable = None
         try:
             cell_list = worksheet.findall(date.lower())
-        except:
-            cell_list = None
-
-        timetable = None
-        if cell_list is not None:
             cell_list = list(map(lambda c: c.row, cell_list))
             timetable = []
             for cl in cell_list:
                 timetable.append(worksheet.row_values(cl))
-            timetable = pd.DataFrame(timetable)
-        #elif self.__alternative:
-        #else:
-        #    raise RuntimeError
+            columns = worksheet.row_values(0)
+            timetable = pd.DataFrame(timetable, columns=columns)
+        except:
+            if self.__alternative:
+                pass
         return timetable
 
     def get_picture(self, key):
 
         worksheet = self.__ds
+        picture = None
         try:
             cell = worksheet.find(key.lower())
-        except:
-            cell = None
-        
-        picture = None
-        if cell is not None:
             url = worksheet.cell(cell.row, cell.col+1).value
             buf = BytesIO(download_file(url))       
             picture = Image.open(buf)
-        elif self.__alternative:
-            alternative_ds = GetPicture(GoogleColabInput())
-            picture = alternative_ds.get_picture(key)
-        #else:
-        #    raise RuntimeError
+        except:
+            if self.__alternative:
+                alternative_ds = GetPicture(GoogleColabInput())
+                picture = alternative_ds.get_picture(key)
         return picture
     
     def get_shortname(self, team):
@@ -399,38 +391,31 @@ class GoogleSpreadsheet(DataSource):
             return team
 
         worksheet = self.__ds
+        shortname = None
         try:
             cell = worksheet.find(team.lower())
-        except:
-            cell = None
-
-        shortname = None
-        if cell is not None:
             shortname = worksheet.cell(cell.row, cell.col+1).value
-        elif self.__alternative:
-            alternative_ds = GetShortname(GoogleColabInput())
-            shortname = alternative_ds.get_shortname(team)
-        else:
-            shortname = team
+        except:
+            if self.__alternative:
+                alternative_ds = GetShortname(GoogleColabInput())
+                shortname = alternative_ds.get_shortname(team)
+            else:
+                shortname = team
         return shortname
 
     def get_font(self, key, size):
+
         worksheet = self.__ds
+        font = None
         try:
             cell = worksheet.find(key.lower())
-        except:
-            cell = None
-
-        font = None
-        if cell is not None:
             url = worksheet.cell(cell.row, cell.col+1).value
             buf = BytesIO(download_file(url))
             font = ImageFont.truetype(buf, size=size)
-        elif self.__alternative:
-            alternative_ds = GetFont(GoogleColabInput())
-            font = alternative_ds.get_font(key, size)
-        #else:
-        #    raise RuntimeError
+        except:
+            if self.__alternative:
+                alternative_ds = GetFont(GoogleColabInput())
+                font = alternative_ds.get_font(key, size)
         return font
 
         
