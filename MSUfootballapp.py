@@ -243,7 +243,7 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
             background_ = background_to_str(background, timetable.iloc[i, 4])
             team_1 = timetable.iloc[i, 'Команда 1'].strip()
             team_2 = timetable.iloc[i, 'Команда 2'].strip()
-            date_ = f'{date} {timetable.iloc[i, 'Время']}'
+            date_ = f'{date} {timetable.iloc[i, "Время"]}'
             tournament = tournament_to_str(timetable.iloc[i, 'Див'])
             covers.append(make_cover(background_ds, background_, logo_ds, font_ds, font, team_1, team_2, date_, tournament))
 
