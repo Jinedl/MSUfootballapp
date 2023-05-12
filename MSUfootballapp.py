@@ -154,12 +154,12 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
                               (timetable['Счет'].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
-        weekday = timetable.iloc[0, 'ДН'].upper()
+        weekday = timetable.loc[0, 'ДН'].upper()
         weekday = weekday_to_str(weekday)
-        time = timetable.iloc[:, 'Время']
-        stadium = 'МГУ, '+timetable.iloc[:, 'Поле']
-        tournament = timetable.iloc[:, 'Див']
-        teams = teams_to_str(timetable.iloc[:, 'Команда 1'].str.strip(), timetable.iloc[:, 'Команда 2'].str.strip(), shortname_ds)
+        time = timetable.loc[:, 'Время']
+        stadium = 'МГУ, '+timetable.loc[:, 'Поле']
+        tournament = timetable.loc[:, 'Див']
+        teams = teams_to_str(timetable.loc[:, 'Команда 1'].str.strip(), timetable.loc[:, 'Команда 2'].str.strip(), shortname_ds)
         timetable = pd.DataFrame(columns=[f'{date} // {weekday}', ''])
         timetable.iloc[:, 0] = time+' // '+teams
         timetable.iloc[:, 1] = tournament+' // '+stadium
@@ -241,10 +241,10 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
         date = date_to_str(date).lower()
         for i in timetable.index:
             background_ = background_to_str(background, timetable.iloc[i, 4])
-            team_1 = timetable.iloc[i, 'Команда 1'].strip()
-            team_2 = timetable.iloc[i, 'Команда 2'].strip()
-            date_ = f'{date} {timetable.iloc[i, "Время"]}'
-            tournament = tournament_to_str(timetable.iloc[i, 'Див'])
+            team_1 = timetable.loc[i, 'Команда 1'].strip()
+            team_2 = timetable.loc[i, 'Команда 2'].strip()
+            date_ = f'{date} {timetable.loc[i, "Время"]}'
+            tournament = tournament_to_str(timetable.loc[i, 'Див'])
             covers.append(make_cover(background_ds, background_, logo_ds, font_ds, font, team_1, team_2, date_, tournament))
 
     return covers
@@ -363,7 +363,7 @@ class GoogleSpreadsheet(DataSource):
             timetable = []
             for cl in cell_list:
                 timetable.append(worksheet.row_values(cl))
-            columns = worksheet.row_values(0)
+            columns = worksheet.row_values(1)
             timetable = pd.DataFrame(timetable, columns=columns)
         except:
             if self.__alternative:
