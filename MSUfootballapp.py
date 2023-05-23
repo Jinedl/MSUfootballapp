@@ -364,7 +364,9 @@ class GoogleSpreadsheet(DataSource):
             for cl in cell_list:
                 timetable.append(worksheet.row_values(cl))
             columns = worksheet.row_values(1)
-            timetable = pd.DataFrame(timetable, columns=columns)
+            timetable = pd.DataFrame(timetable)
+            columns += [''] * (timetable.shape[1]-len(columns))
+            timetable.columns = columns
         except:
             if self.__alternative:
                 pass
