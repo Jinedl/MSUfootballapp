@@ -98,18 +98,37 @@ def teams_to_str(home, guest, shortname_ds):
 #Векторизация функции по созданию противостояния
 teams_to_str = np.vectorize(teams_to_str, excluded=['shortname_ds'], cache=True)
 
-def tournament_to_str(t):
-    #Получение из сокращения турнира его полное название
-    if 'КР' in t:
-        t = t.split()
-        return f'{t[0]} группа {t[1]}'
-    elif t == 'ЧВ':
-        return 'Чемпионат выпускников'
-    elif t == 'В':
-        return 'Высший дивизион'
-    elif t in ['1А', '1Б', '1В', '2А', '2Б', '2В']:
-        return f'Дивизион {t}'
-    return t
+def tournament_to_str(t, s):
+    #Получение полного названия турнира и его стадии
+    t = t.split()
+
+    group = ''
+    if t[0] == 'КР':
+        tournament = 'Кубок ректора'
+    elif t[0] == 'МКР':
+        tournament = 'Малый кубок ректора'
+    elif t[0] == 'ЧВ':
+        tournament = 'Чемпионат выпускников'
+    else:
+        tournament = 'Чемпионат ОПК'
+        if t[0] == 'В':
+            group = 'Высший дивизион '
+        else:
+            group = f'Дивизион {t[0]} '
+    if len(t) == 2:
+        group = f'Группа {t[1]} '
+
+    if s == 'Ф':
+        stage = 'Финал'
+    elif s == '3 м':
+        stage = 'Матч за третье место'
+    elif '/' in s:
+        stage = f'{s} финала'
+    elif s.isdigit():
+        stage = f'{s} тур'
+    else:
+        stage = s
+    return (tournament, group+stage)
 
 def background_to_str(b, t):
     #Получение из названия обложки из типа обложки и названия турнира
@@ -218,13 +237,18 @@ def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2
         fill='white')
 
     draw.text(
-        (640-round(small_font.getlength(date)/2), 200),
+        (640-round(small_font.getlength(date)/2), 170),
         date,
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament)/2), 200+30+5),
-        tournament,
+        (640-round(small_font.getlength(tournament[0])/2), 170+30+5),
+        tournament[0],
+        font=small_font,
+        fill='white')
+    draw.text(
+        (640-round(small_font.getlength(tournament[1])/2), 170+30+5+30+5),
+        tournament[1],
         font=small_font,
         fill='white')
 
@@ -244,7 +268,7 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
             team_1 = timetable.loc[i, 'Команда 1'].strip()
             team_2 = timetable.loc[i, 'Команда 2'].strip()
             date_ = f'{date} {timetable.loc[i, "Время"]}'
-            tournament = tournament_to_str(timetable.loc[i, 'Див'])
+            tournament = tournament_to_str(timetable.loc[i, 'Див'], timetable.loc[i, 'Тур'])
             covers.append(make_cover(background_ds, background_, logo_ds, font_ds, font, team_1, team_2, date_, tournament))
 
     return covers
