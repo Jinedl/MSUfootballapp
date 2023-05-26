@@ -104,9 +104,9 @@ def tournament_to_str(t, s):
 
     group = ''
     if t[0] == 'КР':
-        tournament = 'Кубок ректора'
+        tournament = 'Кубок Ректора'
     elif t[0] == 'МКР':
-        tournament = 'Малый кубок ректора'
+        tournament = 'Малый Кубок Ректора'
     elif t[0] == 'ЧВ':
         tournament = 'Чемпионат выпускников'
     else:
