@@ -174,7 +174,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         timetable = timetable_ds.get_timetable(date)
         #if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable['Див'].str.contains('|'.join(tournaments)) == True) &
+        timetable = timetable[(timetable['Див'].str.lower().str.contains('|'.join(tournaments).lower()) == True) &
                               #(timetable['Див'].str.lower().str.contains('резерв') == False) &
                               (timetable['Счет'].str.lower().str.contains('перенос') == False) &
                               (timetable['Счет'].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
