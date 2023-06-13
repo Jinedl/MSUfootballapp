@@ -142,13 +142,13 @@ def background_to_str(b, t):
     b = b.split()
     if type(t) == str:
       t = [t]
-    t = set(t)
+    t = set(map(str.lower, t))
     tournaments = []
-    if any('кр' in tt.lower() for tt in t):
+    if any('кр' in tt for tt in t):
         tournaments += ['КР']
-    if len(t.lower().intersection(['в', '1а', '1б', '1в', '2а', '2б', '2в'])) or any('стыки' in tt.lower() for tt in t):
+    if len(t.intersection(['в', '1а', '1б', '1в', '2а', '2б', '2в'])) or any('стыки' in tt for tt in t):
         tournaments += ['ОПК']
-    if len(t.lower().intersection(['чв'])):
+    if len(t.intersection(['чв'])):
         tournaments += ['ЧВ']
     return f'{b[0]} {"+".join(tournaments)} {" ".join(b[1:])}'.strip()
 
