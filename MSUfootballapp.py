@@ -144,11 +144,11 @@ def background_to_str(b, t):
       t = [t]
     t = set(t)
     tournaments = []
-    if any('КР' in tt for tt in t):
+    if any('кр' in tt.lower() for tt in t):
         tournaments += ['КР']
-    if len(t.intersection(['В', '1А', '1Б', '1В', '2А', '2Б', '2В', 'Стыки'])):
+    if len(t.lower().intersection(['в', '1а', '1б', '1в', '2а', '2б', '2в'])) or any('стыки' in tt.lower() for tt in t):
         tournaments += ['ОПК']
-    if len(t.intersection(['ЧВ'])):
+    if len(t.lower().intersection(['чв'])):
         tournaments += ['ЧВ']
     return f'{b[0]} {"+".join(tournaments)} {" ".join(b[1:])}'.strip()
 
