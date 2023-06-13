@@ -271,7 +271,7 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
 
         date = date_to_str(date).lower()
         for i in timetable.index:
-            background_ = background_to_str(background, timetable.iloc[i, 4])
+            background_ = background_to_str(background, timetable.loc[i, 'Див'])
             team_1 = timetable.loc[i, 'Команда 1'].strip()
             team_2 = timetable.loc[i, 'Команда 2'].strip()
             date_ = f'{date} {timetable.loc[i, "Время"]}'
