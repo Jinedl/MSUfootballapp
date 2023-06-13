@@ -40,7 +40,7 @@ def dates_input(input_):
 
 def tournaments_input(input_):
     #Создание списка турниров для расписания
-    all_tournaments = ['КР', 'МКР', 'ЧВ', 'В', '1А', '1Б', '1В', '2А', '2Б', '2В']
+    all_tournaments = ['КР', 'МКР', 'ЧВ', 'В', '1А', '1Б', '1В', '2А', '2Б', '2В', 'Стыки']
     tournaments = []
     for i in range(len(input_)):
         if input_[i]:
@@ -146,7 +146,7 @@ def background_to_str(b, t):
     tournaments = []
     if any('КР' in tt for tt in t):
         tournaments += ['КР']
-    if len(t.intersection(['В', '1А', '1Б', '1В', '2А', '2Б', '2В'])):
+    if len(t.intersection(['В', '1А', '1Б', '1В', '2А', '2Б', '2В', 'Стыки'])):
         tournaments += ['ОПК']
     if len(t.intersection(['ЧВ'])):
         tournaments += ['ЧВ']
