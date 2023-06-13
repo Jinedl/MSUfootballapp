@@ -110,7 +110,7 @@ def tournament_to_str(t, s):
     elif t[0].lower() == 'чв':
         tournament = 'Чемпионат выпускников'
     elif t[0].lower() == 'стыки':
-        tournament = 'Стыковые матчи'
+        tournament = 'Стыки '
         if t[1] == 'в':
             tournament += 'за Высший дивизион'
         elif t[1] == '1':
