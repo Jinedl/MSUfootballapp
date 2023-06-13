@@ -103,24 +103,31 @@ def tournament_to_str(t, s):
     t = t.split()
 
     group = ''
-    if t[0] == 'КР':
+    if t[0].lower() == 'кр':
         tournament = 'Кубок Ректора'
-    elif t[0] == 'МКР':
+    elif t[0].lower() == 'мкр':
         tournament = 'Малый Кубок Ректора'
-    elif t[0] == 'ЧВ':
+    elif t[0].lower() == 'чв':
         tournament = 'Чемпионат выпускников'
+    elif t[0].lower() == 'стыки':
+        tournament = 'Стыковые матчи'
+        if t[1] == 'в':
+            tournament += 'за Высший дивизион'
+        elif t[1] == '1':
+            tournament += 'за Первый дивизион'
+        t = []
     else:
         tournament = 'Чемпионат ОПК'
-        if t[0] == 'В':
+        if t[0].lower() == 'в':
             group = 'Высший дивизион '
         else:
             group = f'Дивизион {t[0]} '
     if len(t) == 2:
         group = f'Группа {t[1]} '
 
-    if s == 'Ф':
+    if s.lower() == 'ф':
         stage = 'Финал'
-    elif s == '3 м':
+    elif s.lower() == '3 м':
         stage = 'Матч за третье место'
     elif '/' in s:
         stage = f'{s} финала'
@@ -154,7 +161,7 @@ def yadisk_to_url(url):
 
 def download_file(url):
     #Загрузка файла
-    if 'yandex' in url:
+    if 'yandex' in url.lower():
         url = yadisk_to_url(url)
     return requests.get(url).content
 
