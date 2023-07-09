@@ -446,7 +446,7 @@ class GoogleSpreadsheet(DataSource):
                 columns = columns[:cols]
             else:
                 columns += [''] * (cols-len(columns))
-                timetable.columns = list(map(str.lower, map(str.strip, columns)))
+            timetable.columns = list(map(str.lower, map(str.strip, columns)))
         except:
             if self.__alternative:
                 pass
