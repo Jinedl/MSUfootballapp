@@ -47,7 +47,7 @@ def tournaments_input(input_):
             if input_[i][1]:
                 tournaments += list(all_tournaments[i]+np.array(input_[i][1]))
             else:
-                tournaments.append(all_tournaments[i]
+                tournaments.append(all_tournaments[i])
     return tournaments
 
 def font_ds_input(input_):
@@ -155,7 +155,7 @@ def tournament_to_str(t, s):
     else:
         line3 = s
 
-    if line2 = '':
+    if not line2:
         line2 = line3
         line3 = ''
     
@@ -441,8 +441,12 @@ class GoogleSpreadsheet(DataSource):
                 timetable.append(worksheet.row_values(cl))
             columns = worksheet.row_values(1)
             timetable = pd.DataFrame(timetable)
-            columns += [''] * (timetable.shape[1]-len(columns))
-            timetable.columns = list(map(str.lower, map(str.strip, columns)))
+            cols = timetable.shape[1]
+            if cols < len(columns):
+                columns = columns[:cols]
+            else:
+                columns += [''] * (cols-len(columns))
+                timetable.columns = list(map(str.lower, map(str.strip, columns)))
         except:
             if self.__alternative:
                 pass
