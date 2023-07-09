@@ -102,43 +102,63 @@ def tournament_to_str(t, s):
     #Получение полного названия турнира и его стадии
     t = t.split()
 
-    group = ''
-    if t[0].lower() == 'кр':
-        tournament = 'Кубок Ректора'
-    elif t[0].lower() == 'мкр':
-        tournament = 'Малый Кубок Ректора'
-    elif t[0].lower() == 'чв':
-        tournament = 'Чемпионат выпускников'
+    # ОПК, ЧВ, КР, МКР, ЛП, КП, ЗЛ, стыки
+    if t[0].lower() == 'опк':
+        line1 = 'Чемпионат ОПК'
     elif t[0].lower() == 'стыки':
-        tournament = 'Стыки '
-        if t[1] == 'в':
-            tournament += 'за Высший дивизион'
-        elif t[1] == '1':
-            tournament += 'за Первый дивизион'
-        t = []
+        line1 = 'Стыковые матчи'
+    elif t[0].lower() == 'кр':
+        line1 = 'Кубок Ректора'
+    elif t[0].lower() == 'мкр':
+        line1 = 'Малый Кубок Ректора'
+    elif t[0].lower() == 'чв':
+        line1 = 'Чемпионат выпускников'
+    elif t[0].lower() == 'лп':
+        line1 = 'Летнее первенство'
+    elif t[0].lower() == 'кп':
+        line1 = 'Кубок первокурсника'
+    elif t[0].lower() == 'зл':
+        line1 = 'Зимняя лига'
     else:
-        tournament = 'Чемпионат ОПК'
-        if t[0].lower() == 'в':
-            group = 'Высший дивизион '
-        else:
-            group = f'Дивизион {t[0]} '
-    if len(t) == 2:
-        group = f'Группа {t[1]} '
+        line1 = t[0]
 
+    line2 = ''
+    if len(t) == 2:
+        if t[0].lower() in ['опк', 'чв', 'лп', 'зл']:
+            if t[1].lower() == 'в':
+                line2 = 'Высший дивизион'
+            else:
+                line2 = f'Дивизион {t[0]}'
+        elif t[0].lower() in ['кр', 'мкр', 'кп']:
+                line2 = f'Группа {t[1]} '
+        elif t[0].lower() == 'стыки':
+            if t[1] == 'в':
+                line2 = 'За Высший дивизион'
+            elif t[1] == '1':
+                line2 = 'За Первый дивизион'
+        else:
+            line2 = t[1]
+
+    line3 = ''
     if s.lower() == 'ф':
-        stage = 'Финал'
+        line3 = 'Финал'
     elif s.lower() == '3 м':
-        stage = 'Матч за третье место'
+        line3 = 'Матч за третье место'
     elif '/' in s:
-        stage = f'{s} финала'
+        line3 = f'{s} финала'
     elif s.isdigit():
-        stage = f'{s} тур'
+        line3 = f'{s} тур'
     else:
-        stage = s
-    return (tournament, group+stage)
+        line3 = s
+
+    if line2 = '':
+        line2 = line3
+        line3 = ''
+    
+    return (line1, line2, line3)
 
 def background_to_str(b, t):
-    #Получение из названия обложки из типа обложки и названия турнира
+    #Получение названия обложки из типа обложки и названия турнира
     b = b.split()
     if type(t) == str:
       t = [t]
@@ -146,10 +166,16 @@ def background_to_str(b, t):
     tournaments = []
     if any('кр' in tt for tt in t):
         tournaments += ['КР']
-    if len(t.intersection(['в', '1а', '1б', '1в', '2а', '2б', '2в'])) or any('стыки' in tt for tt in t):
+    if  or any('опк' in tt for tt in t) or len(t.intersection(['в', '1а', '1б', '1в', '2а', '2б', '2в'])) or any('стыки' in tt for tt in t):
         tournaments += ['ОПК']
-    if len(t.intersection(['чв'])):
+    if any('чв' in tt for tt in t):
         tournaments += ['ЧВ']
+    if any('лп' in tt for tt in t):
+        tournaments += ['ЛП']
+    if any('кп' in tt for tt in t):
+        tournaments += ['КП']
+    if any('зл' in tt for tt in t):
+        tournaments += ['ЗЛ']
     return f'{b[0]} {"+".join(tournaments)} {" ".join(b[1:])}'.strip()
 
 def yadisk_to_url(url):
@@ -183,7 +209,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         weekday = timetable.loc[0, 'ДН'].upper()
         weekday = weekday_to_str(weekday)
         time = timetable.loc[:, 'Время']
-        stadium = 'МГУ, '+timetable.loc[:, 'Поле']
+        stadium = timetable.loc[:, 'Поле']
         tournament = timetable.loc[:, 'Див']
         teams = teams_to_str(timetable.loc[:, 'Команда 1'].str.strip(), timetable.loc[:, 'Команда 2'].str.strip(), shortname_ds)
         timetable = pd.DataFrame(columns=[f'{date} // {weekday}', ''])
@@ -244,18 +270,23 @@ def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2
         fill='white')
 
     draw.text(
-        (640-round(small_font.getlength(date)/2), 170),
+        (640-round(small_font.getlength(date)/2), 130 + 0*(30+5)),
         date,
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[0])/2), 170+30+5),
+        (640-round(small_font.getlength(tournament[0])/2), 130 + 1*(30+5)),
         tournament[0],
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[1])/2), 170+30+5+30+5),
+        (640-round(small_font.getlength(tournament[1])/2), 130 + 2*(30+5)),
         tournament[1],
+        font=small_font,
+        fill='white')
+    draw.text(
+        (640-round(small_font.getlength(tournament[2])/2), 130 + 3*(30+5)),
+        tournament[2],
         font=small_font,
         fill='white')
 
