@@ -40,11 +40,14 @@ def dates_input(input_):
 
 def tournaments_input(input_):
     #Создание списка турниров для расписания
-    all_tournaments = ['КР', 'МКР', 'ЧВ', 'В', '1А', '1Б', '1В', '2А', '2Б', '2В', 'Стыки']
+    all_tournaments = ['Стыки', 'ОПК', 'ЧВ', 'КР', 'МКР', 'ЛП', 'КП', 'ЗЛ']
     tournaments = []
     for i in range(len(input_)):
-        if input_[i]:
-            tournaments.append(all_tournaments[i])
+        if input_[i][0]:
+            if input_[i][1]:
+                tournaments += list(all_tournaments[i]+np.array(input_[i][1]))
+            else:
+                tournaments.append(all_tournaments[i]
     return tournaments
 
 def font_ds_input(input_):
@@ -65,7 +68,7 @@ def weekday_to_str(wd):
     #Преобразование дня недели к виду ДЕНЬ
     weekdays = {'ПН':'ПОНЕДЕЛЬНИК', 'ВТ':'ВТОРНИК', 'СР':'СРЕДА',
                 'ЧТ':'ЧЕТВЕРГ', 'ПТ':'ПЯТНИЦА', 'СБ':'СУББОТА', 'ВС':'ВОСКРЕСЕНЬЕ'}
-    return weekdays[wd]
+    return weekdays[wd.upper()]
 
 def team_len(st):
     #Длина названия команд
@@ -103,46 +106,47 @@ def tournament_to_str(t, s):
     t = t.split()
 
     # ОПК, ЧВ, КР, МКР, ЛП, КП, ЗЛ, стыки
-    if t[0].lower() == 'опк':
+    th = t[0].lower().strip()
+    if th == 'опк':
         line1 = 'Чемпионат ОПК'
-    elif t[0].lower() == 'стыки':
+    elif th == 'стыки':
         line1 = 'Стыковые матчи'
-    elif t[0].lower() == 'кр':
+    elif th == 'кр':
         line1 = 'Кубок Ректора'
-    elif t[0].lower() == 'мкр':
+    elif th == 'мкр':
         line1 = 'Малый Кубок Ректора'
-    elif t[0].lower() == 'чв':
+    elif th == 'чв':
         line1 = 'Чемпионат выпускников'
-    elif t[0].lower() == 'лп':
+    elif th == 'лп':
         line1 = 'Летнее первенство'
-    elif t[0].lower() == 'кп':
+    elif th == 'кп':
         line1 = 'Кубок первокурсника'
-    elif t[0].lower() == 'зл':
+    elif th == 'зл':
         line1 = 'Зимняя лига'
     else:
         line1 = t[0]
 
     line2 = ''
     if len(t) == 2:
-        if t[0].lower() in ['опк', 'чв', 'лп', 'зл']:
-            if t[1].lower() == 'выш':
+        if th in ['опк', 'чв', 'лп', 'зл']:
+            if t[1].lower().strip() == 'выш':
                 line2 = 'Высший дивизион'
             else:
                 line2 = f'Дивизион {t[0]}'
-        elif t[0].lower() in ['кр', 'мкр', 'кп']:
+        elif th in ['кр', 'мкр', 'кп']:
                 line2 = f'Группа {t[1]} '
-        elif t[0].lower() == 'стыки':
-            if t[1] == 'выш':
+        elif th == 'стыки':
+            if t[1].lower().strip() == 'выш':
                 line2 = 'За Высший дивизион'
-            elif t[1] == '1':
+            elif t[1].strip() == '1':
                 line2 = 'За Первый дивизион'
         else:
             line2 = t[1]
 
     line3 = ''
-    if s.lower() == 'ф':
+    if s.lower().strip() == 'ф':
         line3 = 'Финал'
-    elif s.lower() == '3 м':
+    elif s.lower().strip() == '3 м':
         line3 = 'Матч за третье место'
     elif '/' in s:
         line3 = f'{s} финала'
@@ -162,11 +166,11 @@ def background_to_str(b, t):
     b = b.split()
     if type(t) == str:
       t = [t]
-    t = set(map(str.lower, t))
+    t = set(map(str.strip, map(str.lower, t)))
     tournaments = []
     if any('кр' in tt for tt in t):
         tournaments += ['КР']
-    if  or any('опк' in tt for tt in t) or len(t.intersection(['в', '1а', '1б', '1в', '2а', '2б', '2в'])) or any('стыки' in tt for tt in t):
+    if  any('опк' in tt for tt in t) or any('стыки' in tt for tt in t):
         tournaments += ['ОПК']
     if any('чв' in tt for tt in t):
         tournaments += ['ЧВ']
@@ -195,23 +199,33 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
     #Создание окончательной картинки с расписанием
     background_ = background_to_str(background, tournaments)
     timetable_picture = background_ds.get_picture(background_).resize((1280, 1280))
+    tournaments_high = []
+    tournaments_without_high = []
+    for t in tournaments:
+        t = t.lower().strip()
+        if 'выш' in t:
+            tournaments_high.append(t)
+        else:
+            tournaments_without_high.append(t)
     offset = 0
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
         #if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable['Див'].str.lower().str.contains('|'.join(tournaments).lower()) == True) &
-                              #(timetable['Див'].str.lower().str.contains('резерв') == False) &
-                              (timetable['Счет'].str.lower().str.contains('перенос') == False) &
-                              (timetable['Счет'].str.lower().str.contains('тп') == False)].reset_index(drop=True).copy()
+        timetable = timetable[((timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments_without_high)) == True) &
+                               (timetable['див'].str.lower().str.strip().str.contains('выш') == False) |
+                               (timetable['див'].str.lower().str.strip().isin(tournaments_high))) &
+                              #(timetable['див'].str.lower().str.strip().str.contains('резерв') == False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') == False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('тп') == False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
-        weekday = timetable.loc[0, 'ДН'].upper()
+        weekday = timetable.loc[0, 'дн']
         weekday = weekday_to_str(weekday)
-        time = timetable.loc[:, 'Время']
-        stadium = timetable.loc[:, 'Поле']
-        tournament = timetable.loc[:, 'Див']
-        teams = teams_to_str(timetable.loc[:, 'Команда 1'].str.strip(), timetable.loc[:, 'Команда 2'].str.strip(), shortname_ds)
+        time = timetable.loc[:, 'время']
+        stadium = timetable.loc[:, 'поле']
+        tournament = timetable.loc[:, 'див']
+        teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
         timetable = pd.DataFrame(columns=[f'{date} // {weekday}', ''])
         timetable.iloc[:, 0] = time+' // '+teams
         timetable.iloc[:, 1] = tournament+' // '+stadium
@@ -297,16 +311,16 @@ def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetabl
     covers = []
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        timetable = timetable[(timetable['Видео'].isna() == False) &
-                              (timetable['Видео'] != '')].reset_index(drop=True).copy()
+        timetable = timetable[(timetable['видео'].isna() == False) &
+                              (timetable['видео'] != '')].reset_index(drop=True).copy()
 
         date = date_to_str(date).lower()
         for i in timetable.index:
-            background_ = background_to_str(background, timetable.loc[i, 'Див'])
-            team_1 = timetable.loc[i, 'Команда 1'].strip()
-            team_2 = timetable.loc[i, 'Команда 2'].strip()
-            date_ = f'{date} {timetable.loc[i, "Время"]}'
-            tournament = tournament_to_str(timetable.loc[i, 'Див'], timetable.loc[i, 'Тур'])
+            background_ = background_to_str(background, timetable.loc[i, 'див'])
+            team_1 = timetable.loc[i, 'команда 1'].strip()
+            team_2 = timetable.loc[i, 'команда 2'].strip()
+            date_ = f'{date} {timetable.loc[i, "время"]}'
+            tournament = tournament_to_str(timetable.loc[i, 'див'], timetable.loc[i, 'тур'])
             covers.append(make_cover(background_ds, background_, logo_ds, font_ds, font, team_1, team_2, date_, tournament))
 
     return covers
@@ -420,7 +434,7 @@ class GoogleSpreadsheet(DataSource):
         worksheet = self.__ds
         timetable = None
         try:
-            cell_list = worksheet.findall(date.lower())
+            cell_list = worksheet.findall(date.strip().lower())
             cell_list = list(map(lambda c: c.row, cell_list))
             timetable = []
             for cl in cell_list:
@@ -428,7 +442,7 @@ class GoogleSpreadsheet(DataSource):
             columns = worksheet.row_values(1)
             timetable = pd.DataFrame(timetable)
             columns += [''] * (timetable.shape[1]-len(columns))
-            timetable.columns = columns
+            timetable.columns = list(map(str.lower, map(str.strip, columns)))
         except:
             if self.__alternative:
                 pass
@@ -439,7 +453,7 @@ class GoogleSpreadsheet(DataSource):
         worksheet = self.__ds
         picture = None
         try:
-            cell = worksheet.find(key.lower())
+            cell = worksheet.find(key.strip().lower())
             url = worksheet.cell(cell.row, cell.col+1).value
             buf = BytesIO(download_file(url))       
             picture = Image.open(buf)
@@ -457,7 +471,7 @@ class GoogleSpreadsheet(DataSource):
         worksheet = self.__ds
         shortname = None
         try:
-            cell = worksheet.find(team.lower())
+            cell = worksheet.find(team.strip().lower())
             shortname = worksheet.cell(cell.row, cell.col+1).value
         except:
             if self.__alternative:
@@ -472,7 +486,7 @@ class GoogleSpreadsheet(DataSource):
         worksheet = self.__ds
         font = None
         try:
-            cell = worksheet.find(key.lower())
+            cell = worksheet.find(key.strip().lower())
             url = worksheet.cell(cell.row, cell.col+1).value
             buf = BytesIO(download_file(url))
             font = ImageFont.truetype(buf, size=size)
