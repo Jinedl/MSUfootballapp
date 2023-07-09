@@ -199,22 +199,12 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
     #Создание окончательной картинки с расписанием
     background_ = background_to_str(background, tournaments)
     timetable_picture = background_ds.get_picture(background_).resize((1280, 1280))
-    tournaments_high = []
-    tournaments_without_high = []
-    for t in tournaments:
-        t = t.lower().strip()
-        if 'выш' in t:
-            tournaments_high.append(t)
-        else:
-            tournaments_without_high.append(t)
     offset = 0
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
         #if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[((timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments_without_high)) == True) &
-                               (timetable['див'].str.lower().str.strip().str.contains('выш') == False) |
-                               (timetable['див'].str.lower().str.strip().isin(tournaments_high))) &
+        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments)) == True) &
                               #(timetable['див'].str.lower().str.strip().str.contains('резерв') == False) &
                               (timetable['счет'].str.lower().str.strip().str.contains('перенос') == False) &
                               (timetable['счет'].str.lower().str.strip().str.contains('тп') == False)].reset_index(drop=True).copy()
