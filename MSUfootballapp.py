@@ -125,14 +125,14 @@ def tournament_to_str(t, s):
     line2 = ''
     if len(t) == 2:
         if t[0].lower() in ['опк', 'чв', 'лп', 'зл']:
-            if t[1].lower() == 'в':
+            if t[1].lower() == 'выш':
                 line2 = 'Высший дивизион'
             else:
                 line2 = f'Дивизион {t[0]}'
         elif t[0].lower() in ['кр', 'мкр', 'кп']:
                 line2 = f'Группа {t[1]} '
         elif t[0].lower() == 'стыки':
-            if t[1] == 'в':
+            if t[1] == 'выш':
                 line2 = 'За Высший дивизион'
             elif t[1] == '1':
                 line2 = 'За Первый дивизион'
