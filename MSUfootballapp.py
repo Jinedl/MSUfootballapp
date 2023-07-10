@@ -217,10 +217,11 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         tournament = timetable.loc[:, 'див']
         teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
 
-        timetable_l = pd.DataFrame(time+' // '+teams, columns=[f'{date} // {weekday}'])
+        match = pd.DataFrame(time+' // '+teams)
+        match.columns = [f'{date} // {weekday}'])
         colorscale = [[0, '#620931'],[.5, '#ffffff'],[1, '#d9e3db']]
         fig = ff.create_table(
-            timetable_l,
+            match,
             index=False,
             colorscale=colorscale,
             height_constant=60,
@@ -229,7 +230,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
             fig.layout.annotations[i].font.size = 37
         fig.update_layout(
             width=742,
-            height=60*(1+timetable_l.shape[0])
+            height=60*(1+match.shape[0])
         )
         fig_bytes = fig.to_image(format="png")
         buf = BytesIO(fig_bytes)
@@ -237,10 +238,10 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         timetable_l = timetable_l.crop((22, 0, 742, timetable_l.size[1]))
         timetable_picture.paste(timetable_l, (110, 290+offset))
 
-        timetable_r = pd.DataFrame(tournament+' // '+stadium).values.tolist()
-        colorscale = [[0, '#013220'],[.5, '#013220'],[1, '#013220']]
+        info = pd.DataFrame(tournament+' // '+stadium).values.tolist()
+        colorscale = [[0, '#183B19'],[.5, '#183B19'],[1, '#183B19']]
         fig = ff.create_table(
-            timetable_r,
+            info,
             index=True,
             colorscale=colorscale,
             height_constant=60,
@@ -249,7 +250,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
             fig.layout.annotations[i].font.size = 24
         fig.update_layout(
             width=360,
-            height=60*(timetable_l.shape[0])
+            height=60*(match.shape[0])
         )
         fig_bytes = fig.to_image(format="png")
         buf = BytesIO(fig_bytes)
