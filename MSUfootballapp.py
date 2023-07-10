@@ -204,7 +204,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         timetable = timetable_ds.get_timetable(date)
         #if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments)) == True) &
+        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) == True) &
                               #(timetable['див'].str.lower().str.strip().str.contains('резерв') == False) &
                               (timetable['счет'].str.lower().str.strip().str.contains('перенос') == False) &
                               (timetable['счет'].str.lower().str.strip().str.contains('тп') == False)].reset_index(drop=True).copy()
@@ -216,13 +216,11 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         stadium = timetable.loc[:, 'поле']
         tournament = timetable.loc[:, 'див']
         teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
-        timetable = pd.DataFrame(columns=[f'{date} // {weekday}', ''])
-        timetable.iloc[:, 0] = time+' // '+teams
-        timetable.iloc[:, 1] = tournament+' // '+stadium
 
+        timetable_l = pd.DataFrame(columns=[f'{date} // {weekday}'], time+' // '+teams)
         colorscale = [[0, '#620931'],[.5, '#ffffff'],[1, '#d9e3db']]
         fig = ff.create_table(
-            timetable,
+            timetable_l,
             index=False,
             colorscale=colorscale,
             height_constant=60,
@@ -230,15 +228,34 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 37
         fig.update_layout(
-            width=1440,
-            height=60*(1+timetable.shape[0])
+            width=720,
+            height=60*(1+timetable_l.shape[0])
         )
         fig_bytes = fig.to_image(format="png")
         buf = BytesIO(fig_bytes)
-
         timetable = Image.open(buf)
-        timetable = timetable.crop((22, 0, 1082, timetable.size[1]))
+        timetable = timetable.crop((22, 0, 720, timetable.size[1]))
         timetable_picture.paste(timetable, (110, 290+offset))
+
+        timetable_r = pd.DataFrame(tournament+' // '+stadium).values.tolist()
+        colorscale = [[0, '#013220'],[.5, '#013220'],[1, '#013220']]
+        fig = ff.create_table(
+            timetable_r,
+            index=True,
+            colorscale=colorscale,
+            height_constant=60,
+        )
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].font.size = 24
+        fig.update_layout(
+            width=360,
+            height=60*(timetable_l.shape[0])
+        )
+        fig_bytes = fig.to_image(format="png")
+        buf = BytesIO(fig_bytes)
+        timetable = Image.open(buf)
+        timetable_picture.paste(timetable, (110+720+2, 290+60+offset))
+
         offset += timetable.size[1]+60
 
     return timetable_picture
