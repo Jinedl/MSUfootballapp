@@ -217,48 +217,49 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         tournament = timetable.loc[:, 'див']
         teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
 
-        match = pd.DataFrame(time+' // '+teams)
-        match.columns = [f'{date} // {weekday}']
-        colorscale = [[0, '#620931'],[.5, '#ffffff'],[1, '#d9e3db']]
-        fig = ff.create_table(
-            match,
-            index=False,
-            colorscale=colorscale,
-            height_constant=60,
-        )
+        n = teams.shape[0]
+        colorscale_white = [[0, '#ffffff'], [.5, '#ffffff'], [1, '#ffffff']]
+        colorscale_red = [[0, '#620931'],[.5, '#620931'],[1, '#620931']]
+        colorscale_green = [[0, '#183B19'],[.5, '#183B19'],[1, '#183B19']]
+
+        teams = pd.DataFrame(teams).values.tolist()
+        fig = ff.create_table([['']] + teams, height_constant=60, colorscale=colorscale_white)
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].font.size = 36
+        fig.update_layout(width=662, height=60*(1+n))
+
+        timetable_teams = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_teams = timetable_teams.crop((22, 60, 662, timetable_teams.size[1]))
+        timetable_picture.paste(timetable_teams, (110+110+6, 284+60+6+offset))
+
+        datematch = [[f'{date} // {weekday}']]
+        fig = ff.create_table(datematch, height_constant=60, colorscale=colorscale_red, index=True)
+        fig.layout.annotations[0].font.size = 37
+        fig.update_layout(width=1082, height=60)
+
+        timetable_datematch = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_picture.paste(timetable_datematch, (110, 285+offset))
+
+        time = pd.DataFrame(time).values.tolist()
+        fig = ff.create_table(time, height_constant=60, colorscale=colorscale_green, index=True)
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 37
-        fig.update_layout(
-            width=742,
-            height=60*(1+match.shape[0])
-        )
-        fig_bytes = fig.to_image(format="png")
-        buf = BytesIO(fig_bytes)
-        timetable_l = Image.open(buf)
-        timetable_l = timetable_l.crop((22, 0, 742, timetable_l.size[1]))
-        timetable_picture.paste(timetable_l, (110, 290+offset))
+        fig.update_layout(width=110, height=60*n)
+
+        timetable_time = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_picture.paste(timetable_time, (110, 290+60+offset))
 
         info = pd.DataFrame(tournament+' // '+stadium).values.tolist()
-        colorscale = [[0, '#183B19'],[.5, '#183B19'],[1, '#183B19']]
-        fig = ff.create_table(
-            info,
-            index=True,
-            colorscale=colorscale,
-            height_constant=60,
-        )
+        fig = ff.create_table(info, height_constant=60, colorscale=colorscale_green, index=True)
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 24
-        fig.update_layout(
-            width=360,
-            height=60*(match.shape[0])
-        )
-        fig_bytes = fig.to_image(format="png")
-        buf = BytesIO(fig_bytes)
-        timetable_r = Image.open(buf)
-        timetable_picture.paste(timetable_r, (110+720+2, 290+60+offset))
+        fig.update_layout(width=320, height=60*n)
 
-        offset += timetable_l.size[1]+60
+        timetable_info = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_picture.paste(timetable_info, (110+110+6+640+6, 290+60+offset))
 
+        offset += 60 + 6 + 60*n + 54
+    
     return timetable_picture
 
 def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2, date, tournament):
