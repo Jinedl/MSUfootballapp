@@ -217,7 +217,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         tournament = timetable.loc[:, 'див']
         teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
 
-        timetable_l = pd.DataFrame(time+' // '+teams, columns=[f'{date} // {weekday}'])
+        timetable_l = [[f'{date} // {weekday}']] + pd.DataFrame(time+' // '+teams).values.tolist()
         colorscale = [[0, '#620931'],[.5, '#ffffff'],[1, '#d9e3db']]
         fig = ff.create_table(
             timetable_l,
