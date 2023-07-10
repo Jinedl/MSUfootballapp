@@ -217,7 +217,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         tournament = timetable.loc[:, 'див']
         teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
 
-        timetable_l = [[f'{date} // {weekday}']] + pd.DataFrame(time+' // '+teams).values.tolist()
+        timetable_l = pd.DataFrame(time+' // '+teams, columns=[f'{date} // {weekday}'])
         colorscale = [[0, '#620931'],[.5, '#ffffff'],[1, '#d9e3db']]
         fig = ff.create_table(
             timetable_l,
@@ -228,14 +228,14 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 37
         fig.update_layout(
-            width=720,
+            width=742,
             height=60*(1+timetable_l.shape[0])
         )
         fig_bytes = fig.to_image(format="png")
         buf = BytesIO(fig_bytes)
-        timetable = Image.open(buf)
-        timetable = timetable.crop((22, 0, 720, timetable.size[1]))
-        timetable_picture.paste(timetable, (110, 290+offset))
+        timetable_l = Image.open(buf)
+        timetable_l = timetable_l.crop((22, 0, 742, timetable_l.size[1]))
+        timetable_picture.paste(timetable_l, (110, 290+offset))
 
         timetable_r = pd.DataFrame(tournament+' // '+stadium).values.tolist()
         colorscale = [[0, '#013220'],[.5, '#013220'],[1, '#013220']]
@@ -253,10 +253,10 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         )
         fig_bytes = fig.to_image(format="png")
         buf = BytesIO(fig_bytes)
-        timetable = Image.open(buf)
-        timetable_picture.paste(timetable, (110+720+2, 290+60+offset))
+        timetable_r = Image.open(buf)
+        timetable_picture.paste(timetable_r, (110+720+2, 290+60+offset))
 
-        offset += timetable.size[1]+60
+        offset += timetable_l.size[1]+60
 
     return timetable_picture
 
