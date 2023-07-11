@@ -79,7 +79,7 @@ def team_len(st):
 
 def teams_to_str(home, guest, shortname_ds):
     #Создание противостояния команд вида ХОЗЯЕВА — ГОСТИ с длиной, подходящей к таблице
-    if team_len(home+guest) > 28:
+    if team_len(home+guest) > 32:
 
         home_shortname = shortname_ds.get_shortname(home)
         if home_shortname is None:
@@ -89,9 +89,9 @@ def teams_to_str(home, guest, shortname_ds):
         if guest_shortname is None:
             guest_shortname = guest
 
-        if team_len(home+guest_shortname) <= 28:
+        if team_len(home+guest_shortname) <= 32:
             guest = guest_shortname
-        elif team_len(home_shortname+guest) <= 28:
+        elif team_len(home_shortname+guest) <= 32:
             home = home_shortname
         else:
             home = home_shortname
@@ -132,7 +132,7 @@ def tournament_to_str(t, s):
             if t[1].lower().strip() == 'выш':
                 line2 = 'Высший дивизион'
             else:
-                line2 = f'Дивизион {t[0]}'
+                line2 = f'Дивизион {t[1]}'
         elif th in ['кр', 'мкр', 'кп']:
                 line2 = f'Группа {t[1]} '
         elif th == 'стыки':
@@ -266,7 +266,7 @@ def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2
     #Создание обложки для видео
     cover = background_ds.get_picture(background).resize((1280, 720))
     big_font = font_ds.get_font(font, size=40)
-    small_font = font_ds.get_font(font, size=30)
+    small_font = font_ds.get_font(font, size=25)
     logo_1 = logo_ds.get_picture(team_1).resize((240, 240))
     logo_2 = logo_ds.get_picture(team_2).resize((240, 240))
 
@@ -293,22 +293,22 @@ def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2
         fill='white')
 
     draw.text(
-        (640-round(small_font.getlength(date)/2), 130 + 0*(30+5)),
+        (640-round(small_font.getlength(date)/2), 150 + 0*(25+5)),
         date,
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[0])/2), 130 + 1*(30+5)),
+        (640-round(small_font.getlength(tournament[0])/2), 150 + 1*(25+5)),
         tournament[0],
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[1])/2), 130 + 2*(30+5)),
+        (640-round(small_font.getlength(tournament[1])/2), 150 + 2*(25+5)),
         tournament[1],
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[2])/2), 130 + 3*(30+5)),
+        (640-round(small_font.getlength(tournament[2])/2), 150 + 3*(25+5)),
         tournament[2],
         font=small_font,
         fill='white')
