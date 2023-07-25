@@ -6,7 +6,7 @@ import plotly.figure_factory as ff
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import gspread
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageChops
 import requests
 from urllib.parse import urlencode
 from bs4 import BeautifulSoup
@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 def ds_input(input_, ds_type, alternative=False):
     # Создание источника данных для ds_type
     data_types = {'timetable': GetTimetable, 'picture': GetPicture, 'font': GetFont,
-                  'shortname': GetShortname, 'tournament_table': GetTournamentTable}
+                  'shortname': GetShortname, 'tournament_table': GetTournamentTable, 'code': GetTournamentCode}
     data_sources = {'Google Таблица': GoogleSpreadsheet, 'Загрузить вручную': GoogleColabInput, 'football.msu.ru': FootballMSUSite}
     input_ = input_.split('/')
     Data = data_types[ds_type]
@@ -42,7 +42,7 @@ def tournaments_input(input_):
         if input_[i][0]:
             all_tournaments[i] = f'{input_[i][1]} {all_tournaments[i]}'
             if input_[i][2]:
-                tournaments += list(all_tournaments[i]+np.array(input_[i][1]))
+                tournaments += list(map(lambda x: f'{all_tournaments[i]} {x}', input_[i][2].split()))
             else:
                 tournaments.append(all_tournaments[i])
     return tournaments
@@ -225,10 +225,10 @@ def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, to
         timetable = timetable_ds.get_timetable(date)
         # if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) == True) &
-                              # (timetable['див'].str.lower().str.strip().str.contains('резерв') == False) &
-                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') == False) &
-                              (timetable['счет'].str.lower().str.strip().str.contains('тп') == False)].reset_index(drop=True).copy()
+        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) is True) &
+                              # (timetable['див'].str.lower().str.strip().str.contains('резерв') is False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') is False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('тп') is False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
         weekday = timetable.loc[0, 'дн']
@@ -287,36 +287,41 @@ def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, to
 def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tournament_table_ds, tournaments):
     # Создание окончательной картинки с турнирной таблицей
     picture = background_ds.get_picture('vertical').resize((1280, 1280))
-    big_font = font_ds.get_font(font, size=100)
+    big_font = font_ds.get_font(font, size=90)
     small_font = font_ds.get_font(font, size=30)
 
-    timetable_pictures = []
+    tournament_table_pictures = []
     for t in tournaments:
 
         tournament_code = tournament_code_ds.get_tournament_code(t)
         tournament_table = tournament_table_ds.get_tournament_table(tournament_code)
-        stage = tournament_table['И'].mode()
+        stage = tournament_table['И'].mode().max()
 
         tournament_table_picture = picture.copy()
+
+        div_types = {'в': 'ВЫСШИЙ', '1': 'ПЕРВЫЙ', '2': 'ВТОРОЙ', '3': 'ТРЕТИЙ'}
+        dh = t.split()[2].lower()
+        div = div_types[dh] if dh in div_types else dh.upper()
+
         draw = ImageDraw.Draw(tournament_table_picture)
-        draw.text((110, 110), f'{subtournament_to_str(*t.split()[1:3]).upper()} // {stage} ТУР', font=big_font, fill='white')
+        draw.text((110, 90), f'{div} // {stage} ТУР', font=big_font, fill='white')
         draw.text((110, 1140), tournament_to_caption(t), font=small_font, fill='white')
 
         teams = tournament_table.loc[:, 'Команда']
-        values = tournament_table.loc[:, ['И', 'В', 'Н', 'П', 'МЗ', 'МП' 'О']]
+        values = tournament_table.loc[:, ['И', 'В', 'Н', 'П', 'МЗ', 'МП', 'О']]
 
         n = teams.shape[0]
-        colorscale_values = [[0, '#d9e3db'], [.5, '#123b1a'], [1, '#620931']]
+        colorscale_values = [[0, '#620931'], [.5, '#ffffff'], [1, '#d9e3db']]
         colorscale_red = [[0, '#620931'], [.5, '#620931'], [1, '#620931']]
         colorscale_green = [[0, '#183B19'], [.5, '#183B19'], [1, '#183B19']]
 
-        komanda = [['Команда']]
+        komanda = [['КОМАНДА']]
         fig = ff.create_table(komanda, height_constant=60, colorscale=colorscale_red, index=True)
         fig.layout.annotations[0].font.size = 36
         fig.update_layout(width=446, height=60)
 
         tournament_table_komanda = Image.open(BytesIO(fig.to_image(format="png")))
-        timetable_picture.paste(tournament_table_komanda, (110, 284))
+        tournament_table_picture.paste(tournament_table_komanda, (110, 284))
 
         teams = pd.DataFrame(teams).values.tolist()
         fig = ff.create_table(teams, height_constant=60, colorscale=colorscale_green, index=True)
@@ -325,24 +330,23 @@ def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tour
         fig.update_layout(width=446, height=60*n)
 
         tournament_table_teams = Image.open(BytesIO(fig.to_image(format="png")))
-        # tournament_table_teams = timetable_teams.crop((22, 60, 462, tournament_table_teams.size[1]))
         tournament_table_picture.paste(tournament_table_teams, (110, 284+60+6))
 
-        values = pd.DataFrame(values).values.tolist()
         fig = ff.create_table(values, height_constant=60, colorscale=colorscale_values)
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 36
-        fig.update_layout(width=630, height=60*(1+n))
+        fig.update_layout(width=608, height=60*(1+n))
 
         tournament_table_values = Image.open(BytesIO(fig.to_image(format="png")))
-        tournament_table_values_cols = tournament_table_values.crop((0, 0, 630, 60))
+        tournament_table_values = ImageChops.offset(tournament_table_values, 15, 0)
+        tournament_table_values_cols = tournament_table_values.crop((0, 0, 608, 60))
         tournament_table_picture.paste(tournament_table_values_cols, (110+446+6, 284))
-        tournament_table_values_vals = tournament_table_values.crop((0, 60, 630, 60*(1+n)))
+        tournament_table_values_vals = tournament_table_values.crop((0, 60, 608, 60*(1+n)))
         tournament_table_picture.paste(tournament_table_values_vals, (110+446+6, 284+60+6))
 
-        timetable_pictures.append(timetable_picture)
+        tournament_table_pictures.append(tournament_table_picture)
 
-    return timetable_pictures
+    return tournament_table_pictures
 
 
 def make_cover(background_ds, logo_ds, font_ds, font, video_types, team_1, team_2, text, tournament):
@@ -361,7 +365,7 @@ def make_cover(background_ds, logo_ds, font_ds, font, video_types, team_1, team_
     draw = ImageDraw.Draw(cover)
 
     draw.text(
-        (640-round(vs_font.getlength('VS')/2), 335),
+        (640-round(vs_font.getlength('VS')/2), 360-round(vs_font.getheight('VS')/2)),
         'VS',
         font=vs_font,
         fill='white')
@@ -423,7 +427,7 @@ def make_many_covers(background_ds, logo_ds, font_ds, font, timetable_ds, video_
     covers = []
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        timetable = timetable[(timetable['видео'].isna() == False) &
+        timetable = timetable[(timetable['видео'].isna() is False) &
                               (timetable['видео'] != '')].reset_index(drop=True).copy()
 
         date = date_to_str(date).lower()
