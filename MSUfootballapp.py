@@ -1,4 +1,4 @@
-#Импортировать нужные библиотеки
+# Импортировать нужные библиотеки
 from google.colab import files
 import numpy as np
 import pandas as pd
@@ -9,28 +9,23 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import requests
 from urllib.parse import urlencode
+from bs4 import BeautifulSoup
 
 
-#Преобразования входных данных
-def timetable_ds_input(input_):
-    #Создание источника данных для расписания
-    timetable_ds = input_.split('/')
-    return GetTimetable(GoogleSpreadsheet(*timetable_ds))
+# Преобразования входных данных
+def ds_input(input_, ds_type, alternative=False):
+    # Создание источника данных для ds_type
+    data_types = {'timetable': GetTimetable, 'picture': GetPicture, 'font': GetFont,
+                  'shortname': GetShortname, 'tournament_table': GetTournamentTable}
+    data_sources = {'Google Таблица': GoogleSpreadsheet, 'Загрузить вручную': GoogleColabInput, 'football.msu.ru': FootballMSUSite}
+    input_ = input_.split('/')
+    Data = data_types[ds_type]
+    Source = data_sources[input_[0]]
+    return Data(Source(*input_[1:], alternative=alternative))
 
-def shortname_ds_input(input_):
-    #Создание источника данных для сокращённых названий
-    shortname_ds = input_.split('/')
-    return GetShortname(GoogleSpreadsheet(*shortname_ds, alternative=True))
-
-def picture_ds_input(input_):
-    #Создание источника данных для картинок
-    picture_ds = input_.split('/')
-    if picture_ds[0] == 'Загрузить вручную':
-        return GetPicture(GoogleColabInput())
-    return GetPicture(GoogleSpreadsheet(*picture_ds, alternative=True))
 
 def dates_input(input_):
-    #Создание списка дат для расписания
+    # Создание списка дат в формате дд.мм из списка дат формата гг-мм-дд
     dates = []
     for d in input_:
         if d != '':
@@ -38,25 +33,45 @@ def dates_input(input_):
             dates.append(f'{d[2]}.{d[1]}')
     return dates
 
+
 def tournaments_input(input_):
-    #Создание списка турниров для расписания
+    # Создание списка турниров из списка элементов формата номер_турнира и списка элементов формата (bool, [список дивизионов])
     all_tournaments = ['Стыки', 'ОПК', 'ЧВ', 'КР', 'МКР', 'ЛП', 'КП', 'ЗЛ']
     tournaments = []
     for i in range(len(input_)):
         if input_[i][0]:
-            if input_[i][1]:
+            all_tournaments[i] = f'{input_[i][1]} {all_tournaments[i]}'
+            if input_[i][2]:
                 tournaments += list(all_tournaments[i]+np.array(input_[i][1]))
             else:
                 tournaments.append(all_tournaments[i])
     return tournaments
 
-def font_ds_input(input_):
-    #Создание источника данных для шрифта
-    font_ds = input_.split('/')
-    return GetFont(GoogleSpreadsheet(*font_ds, alternative=True))
+
+def video_types_input(input_):
+    # Создание списка типов видео
+    all_video_types = ['Прямая трансляция', 'Полный матч', 'Обзор']
+    video_types = []
+    for i in range(len(input_)):
+        if input_[i]:
+            video_types.append(all_video_types[i])
+    return video_types
+
+
+def digits_arabic_to_roman(num):
+    # Перевод числа из арабского формата в римский формат
+    roman_dict = {1000: 'M', 900: 'CM', 500: 'D', 400: 'CD', 100: 'C', 90: 'XC',
+                  50: 'L', 40: 'XL', 10: 'X', 9: 'IX', 5: 'V', 4: 'IV', 1: 'I'}
+    roman_num = ''
+    for key in roman_dict:
+        while num >= key:
+            roman_num += roman_dict[key]
+            num -= key
+    return roman_num
+
 
 def date_to_str(m):
-    #Преобразование даты к виду Х МЕСЯЦА
+    # Преобразование даты к формату Д МЕСЯЦА из формата дд.мм
     months = ['ЯНВАРЯ', 'ФЕВРАЛЯ', 'МАРТА',
               'АПРЕЛЯ', 'МАЯ', 'ИЮНЯ',
               'ИЮЛЯ', 'АВГУСТА', 'СЕНТЯБРЯ',
@@ -64,21 +79,24 @@ def date_to_str(m):
     m = list(map(int, m.split('.')))
     return f'{m[0]} {months[m[1]-1]}'
 
+
 def weekday_to_str(wd):
-    #Преобразование дня недели к виду ДЕНЬ
-    weekdays = {'ПН':'ПОНЕДЕЛЬНИК', 'ВТ':'ВТОРНИК', 'СР':'СРЕДА',
-                'ЧТ':'ЧЕТВЕРГ', 'ПТ':'ПЯТНИЦА', 'СБ':'СУББОТА', 'ВС':'ВОСКРЕСЕНЬЕ'}
+    # Преобразование дня недели к формату ДЕНЬ из формата ДД
+    weekdays = {'ПН': 'ПОНЕДЕЛЬНИК', 'ВТ': 'ВТОРНИК', 'СР': 'СРЕДА',
+                'ЧТ': 'ЧЕТВЕРГ', 'ПТ': 'ПЯТНИЦА', 'СБ': 'СУББОТА', 'ВС': 'ВОСКРЕСЕНЬЕ'}
     return weekdays[wd.upper()]
 
-def team_len(st):
-    #Длина названия команд
-    l = 0
-    for s in st:
-        l += 1+s.isupper()*0.6
-    return round(l+0.6)
 
-def teams_to_str(home, guest, shortname_ds):
-    #Создание противостояния команд вида ХОЗЯЕВА — ГОСТИ с длиной, подходящей к таблице
+def team_len(st):
+    # Длина названия команд с учётом регистра названия
+    length = 0
+    for s in st:
+        length += 1+s.isupper()*0.6
+    return round(length+0.6)
+
+
+def teams_to_match(home, guest, shortname_ds):
+    # Создание противостояния команд вида ХОЗЯЕВА — ГОСТИ с длиной, подходящей к таблице
     if team_len(home+guest) > 32:
 
         home_shortname = shortname_ds.get_shortname(home)
@@ -98,50 +116,65 @@ def teams_to_str(home, guest, shortname_ds):
             guest = guest_shortname
 
     return home+' — '+guest
-#Векторизация функции по созданию противостояния
-teams_to_str = np.vectorize(teams_to_str, excluded=['shortname_ds'], cache=True)
+# Векторизация функции по созданию противостояния
+teams_to_match = np.vectorize(teams_to_match, excluded=['shortname_ds'], cache=True)
 
-def tournament_to_str(t, s):
-    #Получение полного названия турнира и его стадии
+
+def tournament_to_caption(t):
+    captions = {'опк': 'Чемпионат ОПК', 'стыки': 'Чемпионат ОПК', 'кр': 'Кубок Ректора', 'мкр': 'Кубок Ректора',
+                'чв': 'Чемпионат Выпускников', 'лп': 'Летнее Первенство', 'кп': 'Кубок Первокурсника', 'зл': 'Зимняя Лига'}
+    if type(t) == str:
+        t = [t]
+    tournaments = []
+    for tt in t:
+        tt = tt.split()
+        tournaments.append(f'{digits_arabic_to_roman(int(tt[0]))} {captions[tt[1].strip().lower()]}')
+    return ' x '.join(list(set(tournaments)) + ['msufootball'])
+
+
+def subtournament_to_str(t, s):
+    # для Высшего писать "В" кириллицей (в), для дивизиона "вэ" писать "B" латиницей (b)
+    divisions = {'в': 'Высший', '1': 'Первый', '2': 'Второй', '3': 'Третий'}
+    if t.lower().strip() in ['опк', 'чв', 'лп', 'зл']:
+        if s.lower().strip() in divisions:
+            return f'{divisions[s.lower().strip()]} дивизион'
+        else:
+            return f'Дивизион {s}'
+    elif t.lower().strip() in ['кр', 'мкр', 'кп']:
+        return f'Группа {s}'
+    return s
+
+
+def tournament_to_cover_text(t, s):
+    # Получение полного подписи для обложки для видео в формате
+    # Название турнира
+    # Дивизион / Группа
+    # Тур / Стадия
+    # из формата "номер турнир дивизион", "стадия" (например, "13 ОПК 1В", "5")
+    tournaments = {'опк': 'Чемпионат ОПК', 'стыки': 'Чемпионат ОПК', 'кр': 'Кубок Ректора', 'мкр': 'Малый Кубок Ректора',
+                   'чв': 'Чемпионат Выпускников', 'лп': 'Летнее Первенство', 'кп': 'Кубок Первокурсника', 'зл': 'Зимняя Лига'}
     t = t.split()
 
-    # ОПК, ЧВ, КР, МКР, ЛП, КП, ЗЛ, стыки
-    th = t[0].lower().strip()
-    if th == 'опк':
-        line1 = 'Чемпионат ОПК'
-    elif th == 'стыки':
-        line1 = 'Стыковые матчи'
-    elif th == 'кр':
-        line1 = 'Кубок Ректора'
-    elif th == 'мкр':
-        line1 = 'Малый Кубок Ректора'
-    elif th == 'чв':
-        line1 = 'Чемпионат выпускников'
-    elif th == 'лп':
-        line1 = 'Летнее первенство'
-    elif th == 'кп':
-        line1 = 'Кубок первокурсника'
-    elif th == 'зл':
-        line1 = 'Зимняя лига'
+    line1 = digits_arabic_to_roman(int(t[0])) + ' '
+    th = t[1].lower().strip()
+    if th in tournaments:
+        line1 += tournaments[th]
     else:
-        line1 = t[0]
+        line1 += t[1]
 
     line2 = ''
-    if len(t) == 2:
-        if th in ['опк', 'чв', 'лп', 'зл']:
-            if t[1].lower().strip() == 'выш':
-                line2 = 'Высший дивизион'
-            else:
-                line2 = f'Дивизион {t[1]}'
-        elif th in ['кр', 'мкр', 'кп']:
-                line2 = f'Группа {t[1]} '
+    if len(t) == 3:
+        if th in ['опк', 'чв', 'лп', 'зл', 'кр', 'мкр', 'кп']:
+            line2 = subtournament_to_str(th, t[2])
         elif th == 'стыки':
-            if t[1].lower().strip() == 'выш':
+            if t[2].lower().strip() == 'в':
                 line2 = 'За Высший дивизион'
-            elif t[1].strip() == '1':
+            elif t[2].strip() == '1':
                 line2 = 'За Первый дивизион'
+            elif t[2].strip() == '2':
+                line2 = 'За Второй дивизион'
         else:
-            line2 = t[1]
+            line2 = t[2]
 
     line3 = ''
     if s.lower().strip() == 'ф':
@@ -158,56 +191,44 @@ def tournament_to_str(t, s):
     if not line2:
         line2 = line3
         line3 = ''
-    
-    return (line1, line2, line3)
 
-def background_to_str(b, t):
-    #Получение названия обложки из типа обложки и названия турнира
-    b = b.split()
-    if type(t) == str:
-      t = [t]
-    t = set(map(str.strip, map(str.lower, t)))
-    tournaments = []
-    if any('кр' in tt for tt in t):
-        tournaments += ['КР']
-    if  any('опк' in tt for tt in t) or any('стыки' in tt for tt in t):
-        tournaments += ['ОПК']
-    if any('чв' in tt for tt in t):
-        tournaments += ['ЧВ']
-    if any('лп' in tt for tt in t):
-        tournaments += ['ЛП']
-    if any('кп' in tt for tt in t):
-        tournaments += ['КП']
-    if any('зл' in tt for tt in t):
-        tournaments += ['ЗЛ']
-    return f'{b[0]} {"+".join(tournaments)} {" ".join(b[1:])}'.strip()
+    return [line1, line2, line3]
+
 
 def yadisk_to_url(url):
-    #Получение ссылки для загрузки с Я.Диска
+    # Получение ссылки для загрузки с Я.Диска
     base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
     final_url = base_url + urlencode(dict(public_key=url))
     response = requests.get(final_url)
     return response.json()['href']
 
+
 def download_file(url):
-    #Загрузка файла
+    # Загрузка файла
     if 'yandex' in url.lower():
         url = yadisk_to_url(url)
     return requests.get(url).content
 
-def make_timetable_picture(background_ds, background, timetable_ds, dates, tournaments, shortname_ds):
-    #Создание окончательной картинки с расписанием
-    background_ = background_to_str(background, tournaments)
-    timetable_picture = background_ds.get_picture(background_).resize((1280, 1280))
+
+def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, tournaments, shortname_ds):
+    # Создание окончательной картинки с расписанием
+    timetable_picture = background_ds.get_picture('vertical').resize((1280, 1280))
+    big_font = font_ds.get_font(font, size=120)
+    small_font = font_ds.get_font(font, size=30)
+
+    draw = ImageDraw.Draw(timetable_picture)
+    draw.text((110, 80), 'РАСПИСАНИЕ', font=big_font, fill='white')
+    draw.text((110, 1130), tournament_to_caption(tournaments), font=small_font, fill='white')
+
     offset = 0
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        #if timetable.shape[0] == 0:
+        # if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) == True) &
-                              #(timetable['див'].str.lower().str.strip().str.contains('резерв') == False) &
-                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') == False) &
-                              (timetable['счет'].str.lower().str.strip().str.contains('тп') == False)].reset_index(drop=True).copy()
+        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) is True) &
+                              # (timetable['див'].str.lower().str.strip().str.contains('резерв') is False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') is False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('тп') is False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
         weekday = timetable.loc[0, 'дн']
@@ -215,12 +236,29 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         time = timetable.loc[:, 'время']
         stadium = timetable.loc[:, 'поле']
         tournament = timetable.loc[:, 'див']
-        teams = teams_to_str(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
+        teams = teams_to_match(timetable.loc[:, 'команда 1'].str.strip(), timetable.loc[:, 'команда 2'].str.strip(), shortname_ds)
 
         n = teams.shape[0]
         colorscale_white = [[0, '#ffffff'], [.5, '#ffffff'], [1, '#ffffff']]
-        colorscale_red = [[0, '#620931'],[.5, '#620931'],[1, '#620931']]
-        colorscale_green = [[0, '#183B19'],[.5, '#183B19'],[1, '#183B19']]
+        colorscale_red = [[0, '#620931'], [.5, '#620931'], [1, '#620931']]
+        colorscale_green = [[0, '#183B19'], [.5, '#183B19'], [1, '#183B19']]
+
+        datematch = [[f'{date} // {weekday}']]
+        fig = ff.create_table(datematch, height_constant=60, colorscale=colorscale_red, index=True)
+        fig.layout.annotations[0].font.size = 37
+        fig.update_layout(width=1082, height=60)
+
+        timetable_datematch = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_picture.paste(timetable_datematch, (110, 284+offset))
+
+        time = pd.DataFrame(time).values.tolist()
+        fig = ff.create_table(time, height_constant=60, colorscale=colorscale_green, index=True)
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].font.size = 37
+        fig.update_layout(width=110, height=60*n)
+
+        timetable_time = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_picture.paste(timetable_time, (110, 284+offset+60+6))
 
         teams = pd.DataFrame(teams).values.tolist()
         fig = ff.create_table([['']] + teams, height_constant=60, colorscale=colorscale_white)
@@ -230,24 +268,7 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
 
         timetable_teams = Image.open(BytesIO(fig.to_image(format="png")))
         timetable_teams = timetable_teams.crop((22, 60, 662, timetable_teams.size[1]))
-        timetable_picture.paste(timetable_teams, (110+110+6, 284+60+6+offset))
-
-        datematch = [[f'{date} // {weekday}']]
-        fig = ff.create_table(datematch, height_constant=60, colorscale=colorscale_red, index=True)
-        fig.layout.annotations[0].font.size = 37
-        fig.update_layout(width=1082, height=60)
-
-        timetable_datematch = Image.open(BytesIO(fig.to_image(format="png")))
-        timetable_picture.paste(timetable_datematch, (110, 285+offset))
-
-        time = pd.DataFrame(time).values.tolist()
-        fig = ff.create_table(time, height_constant=60, colorscale=colorscale_green, index=True)
-        for i in range(len(fig.layout.annotations)):
-            fig.layout.annotations[i].font.size = 37
-        fig.update_layout(width=110, height=60*n)
-
-        timetable_time = Image.open(BytesIO(fig.to_image(format="png")))
-        timetable_picture.paste(timetable_time, (110, 290+60+offset))
+        timetable_picture.paste(timetable_teams, (110+110+6, 284+offset+60+6))
 
         info = pd.DataFrame(tournament+' // '+stadium).values.tolist()
         fig = ff.create_table(info, height_constant=60, colorscale=colorscale_green, index=True)
@@ -256,15 +277,78 @@ def make_timetable_picture(background_ds, background, timetable_ds, dates, tourn
         fig.update_layout(width=320, height=60*n)
 
         timetable_info = Image.open(BytesIO(fig.to_image(format="png")))
-        timetable_picture.paste(timetable_info, (110+110+6+640+6, 290+60+offset))
+        timetable_picture.paste(timetable_info, (110+110+6+640+6, 284+offset+60+6))
 
         offset += 60 + 6 + 60*n + 54
-    
+
     return timetable_picture
 
-def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2, date, tournament):
-    #Создание обложки для видео
-    cover = background_ds.get_picture(background).resize((1280, 720))
+
+def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tournament_table_ds, tournaments):
+    # Создание окончательной картинки с турнирной таблицей
+    picture = background_ds.get_picture('vertical').resize((1280, 1280))
+    big_font = font_ds.get_font(font, size=100)
+    small_font = font_ds.get_font(font, size=30)
+
+    timetable_pictures = []
+    for t in tournaments:
+
+        tournament_code = tournament_code_ds.get_tournament_code(t)
+        tournament_table = tournament_table_ds.get_tournament_table(tournament_code)
+        stage = tournament_table['И'].mode()
+
+        tournament_table_picture = picture.copy()
+        draw = ImageDraw.Draw(tournament_table_picture)
+        draw.text((110, 110), f'{subtournament_to_str(*t.split()[1:3]).upper()} // {stage} ТУР', font=big_font, fill='white')
+        draw.text((110, 1140), tournament_to_caption(t), font=small_font, fill='white')
+
+        teams = tournament_table.loc[:, 'Команда']
+        values = tournament_table.loc[:, ['И', 'В', 'Н', 'П', 'МЗ', 'МП' 'О']]
+
+        n = teams.shape[0]
+        colorscale_values = [[0, '#d9e3db'], [.5, '#123b1a'], [1, '#620931']]
+        colorscale_red = [[0, '#620931'], [.5, '#620931'], [1, '#620931']]
+        colorscale_green = [[0, '#183B19'], [.5, '#183B19'], [1, '#183B19']]
+
+        komanda = [['Команда']]
+        fig = ff.create_table(komanda, height_constant=60, colorscale=colorscale_red, index=True)
+        fig.layout.annotations[0].font.size = 36
+        fig.update_layout(width=446, height=60)
+
+        tournament_table_komanda = Image.open(BytesIO(fig.to_image(format="png")))
+        timetable_picture.paste(tournament_table_komanda, (110, 284))
+
+        teams = pd.DataFrame(teams).values.tolist()
+        fig = ff.create_table(teams, height_constant=60, colorscale=colorscale_green, index=True)
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].font.size = 36
+        fig.update_layout(width=446, height=60*n)
+
+        tournament_table_teams = Image.open(BytesIO(fig.to_image(format="png")))
+        # tournament_table_teams = timetable_teams.crop((22, 60, 462, tournament_table_teams.size[1]))
+        tournament_table_picture.paste(tournament_table_teams, (110, 284+60+6))
+
+        values = pd.DataFrame(values).values.tolist()
+        fig = ff.create_table(values, height_constant=60, colorscale=colorscale_values)
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].font.size = 36
+        fig.update_layout(width=630, height=60*(1+n))
+
+        tournament_table_values = Image.open(BytesIO(fig.to_image(format="png")))
+        tournament_table_values_cols = tournament_table_values.crop((0, 0, 630, 60))
+        tournament_table_picture.paste(tournament_table_values_cols, (110+446+6, 284))
+        tournament_table_values_vals = tournament_table_values.crop((0, 60, 630, 60*(1+n)))
+        tournament_table_picture.paste(tournament_table_values_vals, (110+446+6, 284+60+6))
+
+        timetable_pictures.append(timetable_picture)
+
+    return timetable_pictures
+
+
+def make_cover(background_ds, logo_ds, font_ds, font, video_types, team_1, team_2, text, tournament):
+    # Создание обложки для видео
+    cover = background_ds.get_picture('horizontal_rectangle').resize((1280, 720))
+    vs_font = font_ds.get_font(font, size=100)
     big_font = font_ds.get_font(font, size=40)
     small_font = font_ds.get_font(font, size=25)
     logo_1 = logo_ds.get_picture(team_1).resize((240, 240))
@@ -276,67 +360,85 @@ def make_cover(background_ds, background, logo_ds, font_ds, font, team_1, team_2
 
     draw = ImageDraw.Draw(cover)
 
-    draw.ellipse((190, 200, 190+260, 200+260), fill='white') 
-    cover.paste(logo_1, (190+10, 200+10), mask)
     draw.text(
-        (190+260//2-round(big_font.getlength(team_1)/2), 200+260+20),
+        (640-round(vs_font.getlength('VS')/2), 360-round(vs_font.getheight('VS')/2)),
+        'VS',
+        font=vs_font,
+        fill='white')
+    draw.text(
+        (640-round(small_font.getlength(tournament_to_caption(tournament))/2), 610),
+        tournament_to_caption(tournament),
+        font=small_font,
+        fill='white')
+
+    draw.ellipse((190, 230, 190+260, 230+260), fill='white')
+    cover.paste(logo_1, (190+10, 230+10), mask)
+    draw.text(
+        (190+260//2-round(big_font.getlength(team_1)/2), 230+260+20),
         team_1,
         font=big_font,
         fill='white')
 
-    draw.ellipse((830, 200, 830+260, 200+260), fill='white') 
-    cover.paste(logo_2, (830+10, 200+10), mask)
+    draw.ellipse((830, 230, 830+260, 230+260), fill='white')
+    cover.paste(logo_2, (830+10, 230+10), mask)
     draw.text(
-        (830+260//2-round(big_font.getlength(team_2)/2), 200+260+20),
+        (830+260//2-round(big_font.getlength(team_2)/2), 230+260+20),
         team_2,
         font=big_font,
         fill='white')
 
     draw.text(
-        (640-round(small_font.getlength(date)/2), 150 + 0*(25+5)),
-        date,
+        (640-round(small_font.getlength(text[0])/2), 180 + 0*(25+5)),
+        text[0],
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[0])/2), 150 + 1*(25+5)),
-        tournament[0],
+        (640-round(small_font.getlength(text[1])/2), 180 + 1*(25+5)),
+        text[1],
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[1])/2), 150 + 2*(25+5)),
-        tournament[1],
+        (640-round(small_font.getlength(text[2])/2), 180 + 2*(25+5)),
+        text[2],
         font=small_font,
         fill='white')
     draw.text(
-        (640-round(small_font.getlength(tournament[2])/2), 150 + 3*(25+5)),
-        tournament[2],
+        (640-round(small_font.getlength(text[3])/2), 180 + 3*(25+5)),
+        text[3],
         font=small_font,
         fill='white')
 
-    return cover
+    covers = []
+    for vd in video_types:
+        cover_picture = cover.copy()
+        draw_video_type = ImageDraw.Draw(cover_picture)
+        draw_video_type.text((95, 100), vd.upper(), font=big_font, fill='white')
+        covers.append(cover_picture)
 
-def make_many_covers(background_ds, background, logo_ds, font_ds, font, timetable_ds, dates):
-    #Создание обложек из расписания с матчами
+    return covers
+
+
+def make_many_covers(background_ds, logo_ds, font_ds, font, timetable_ds, video_types, dates):
+    # Создание обложек из расписания с матчами
     covers = []
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        timetable = timetable[(timetable['видео'].isna() == False) &
+        timetable = timetable[(timetable['видео'].isna() is False) &
                               (timetable['видео'] != '')].reset_index(drop=True).copy()
 
         date = date_to_str(date).lower()
         for i in timetable.index:
-            background_ = background_to_str(background, timetable.loc[i, 'див'])
             team_1 = timetable.loc[i, 'команда 1'].strip()
             team_2 = timetable.loc[i, 'команда 2'].strip()
-            date_ = f'{date} {timetable.loc[i, "время"]}'
-            tournament = tournament_to_str(timetable.loc[i, 'див'], timetable.loc[i, 'тур'])
-            covers.append(make_cover(background_ds, background_, logo_ds, font_ds, font, team_1, team_2, date_, tournament))
+            text = [f'{date} {timetable.loc[i, "время"]}'] + tournament_to_cover_text(timetable.loc[i, 'див'], timetable.loc[i, 'тур'])
+            tournament = timetable.loc[i, 'див']
+            covers += make_cover(background_ds, logo_ds, font_ds, font, video_types, team_1, team_2, text, tournament)
 
     return covers
 
 
 class GoogleAccount(object):
-    #Класс синглтон для установления связи с google-api
+    # Класс синглтон для установления связи с google-api
     __instance = None
     __key = 'key.json'
     __ga = None
@@ -346,36 +448,40 @@ class GoogleAccount(object):
             cls.__instance = object.__new__(cls)
             cls.__ga = gspread.service_account(filename=cls.__key)
         return cls.__instance
-    
+
     def __call__(self):
         return self.__ga
 
 
 class DataSource(object):
-    #Класс-родитель для источников данных
+    # Класс-родитель для источников данных
     def get_timetable(self):
         print('Из этого источника данных невозможно получить расписание')
-    
+
     def get_picture(self):
         print('Из этого источника данных невозможно получить картинку')
-    
+
     def get_tournament_table(self):
         print('Из этого источника данных невозможно получить турнирную таблицу')
-    
+
     def get_shortname(self):
         print('Из этого источника данных невозможно получить сокращённое название команды')
 
     def get_font(self):
         print('Из этого источника данных невозможно получить почерк')
 
+    def get_tournament_code(self):
+        print('Из этого источника данных невозможно получить код турнира')
+
 
 class GetTimetable(DataSource):
-    #Класс для получения расписания из источника данных
+    # Класс для получения расписания из источника данных
     __ds = None
     __cache = {}
+
     def __init__(self, ds):
         self.__ds = ds
-    
+
     def get_timetable(self, date):
         if date not in self.__cache:
             self.__cache[date] = self.__ds.get_timetable(date)
@@ -383,36 +489,41 @@ class GetTimetable(DataSource):
 
 
 class GetPicture(DataSource):
-    #Класс для получения картинки из источника данных
+    # Класс для получения картинки из источника данных
     __ds = None
     __cache = {}
+
     def __init__(self, ds):
         self.__ds = ds
-    
+
     def get_picture(self, key):
         if key not in self.__cache:
             self.__cache[key] = self.__ds.get_picture(key)
         return self.__cache[key]
 
+
 class GetFont(DataSource):
-    #Класс для получения почерка из источника данных
+    # Класс для получения почерка из источника данных
     __ds = None
     __cache = {}
+
     def __init__(self, ds):
         self.__ds = ds
-    
+
     def get_font(self, key, size):
         if (key, size) not in self.__cache:
             self.__cache[(key, size)] = self.__ds.get_font(key, size)
         return self.__cache[(key, size)]
 
+
 class GetShortname(DataSource):
-    #Класс для получения сокращённого названия из источника данных
+    # Класс для получения сокращённого названия из источника данных
     __ds = None
     __cache = {}
+
     def __init__(self, ds):
         self.__ds = ds
-    
+
     def get_shortname(self, team):
         if team not in self.__cache:
             self.__cache[team] = self.__ds.get_shortname(team)
@@ -420,19 +531,38 @@ class GetShortname(DataSource):
 
 
 class GetTournamentTable(DataSource):
-    #Класс для получения турнирной таблицы из источника данных
+    # Класс для получения турнирной таблицы из источника данных
     __ds = None
+    __cache = {}
+
     def __init__(self, ds):
         self.__ds = ds
-    
-    def get_tournament_table(self, args):
-        return self.__ds.get_tournament_table(args)
+
+    def get_tournament_table(self, tournament):
+        if tournament not in self.__cache:
+            self.__cache[tournament] = self.__ds.get_tournament_table(tournament)
+        return self.__cache[tournament]
+
+
+class GetTournamentCode(DataSource):
+    # Класс для получения кода турнирна
+    __ds = None
+    __cache = {}
+
+    def __init__(self, ds):
+        self.__ds = ds
+
+    def get_tournament_code(self, tournament):
+        if tournament not in self.__cache:
+            self.__cache[tournament] = self.__ds.get_tournament_code(tournament)
+        return self.__cache[tournament]
 
 
 class GoogleSpreadsheet(DataSource):
-    #Класс для источника данных - google spreadsheet
+    # Класс для источника данных - google spreadsheet
     __ds = None
     __alternative = False
+
     def __init__(self, spreadsheet_name, worksheet_name, alternative=False):
         ga = GoogleAccount()
         self.__ds = ga().open(spreadsheet_name).worksheet(worksheet_name)
@@ -468,14 +598,14 @@ class GoogleSpreadsheet(DataSource):
         try:
             cell = worksheet.find(key.strip().lower())
             url = worksheet.cell(cell.row, cell.col+1).value
-            buf = BytesIO(download_file(url))       
+            buf = BytesIO(download_file(url))
             picture = Image.open(buf)
         except:
             if self.__alternative:
                 alternative_ds = GetPicture(GoogleColabInput())
                 picture = alternative_ds.get_picture(key)
         return picture
-    
+
     def get_shortname(self, team):
 
         if team_len(team) <= 14:
@@ -509,9 +639,22 @@ class GoogleSpreadsheet(DataSource):
                 font = alternative_ds.get_font(key, size)
         return font
 
-        
+    def get_tournament_code(self, tournament):
+
+        worksheet = self.__ds
+        tournament_code = None
+        try:
+            cell = worksheet.find(tournament.strip().lower())
+            tournament_code = worksheet.cell(cell.row, cell.col+1).value
+        except:
+            if self.__alternative:
+                alternative_ds = GetTournamentCode(GoogleColabInput())
+                tournament_code = alternative_ds.get_tournament_code(tournament)
+        return tournament_code
+
+
 class GoogleColabInput(DataSource):
-    #Класс для источника данных - ввод в google colab
+    # Класс для источника данных - ввод в google colab
     def get_picture(self, key):
         if key == '':
             print(f'↓ Загрузи картинку')
@@ -533,3 +676,30 @@ class GoogleColabInput(DataSource):
 
     def get_shortname(self, team):
         return input(f'Введите сокращенное название для команды "{team}"\n')
+
+    def get_tournament_code(self, tournament):
+        return input(f'Введите код для турнира "{tournament}"\n')
+
+
+class FootballMSUSite(DataSource):
+    # Класс для источника данных - http://football.msu.ru
+    __alternative = False
+
+    def __init__(self, alternative=False):
+        self.__alternative = alternative
+
+    def get_tournament_table(self, code):
+        tournament_table = None
+        try:
+            url = f'http://football.msu.ru/tournament/{code.split()[0]}/tables?round_id={code.split()[1]}'
+            soup = BeautifulSoup(requests.get(url).text, 'lxml')
+            table = soup.find('div', {'id': "tournamentTablesTable",
+                              'class': "tournaments-tables-cont sfl-tab-cont mobile"}).find('table')
+            rows = table.find_all('tr')
+            columns = list(map(lambda x: x.text.strip(), rows[0].find_all('th')))[1:-1]
+            teams = [list(map(lambda x: x.text.strip(), r.find_all('td')))[2:-1] for r in rows[1:]]
+            tournament_table = pd.DataFrame(teams, columns=columns)
+        except:
+            if self.__alternative:
+                pass
+        return tournament_table
