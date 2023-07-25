@@ -225,10 +225,10 @@ def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, to
         timetable = timetable_ds.get_timetable(date)
         # if timetable.shape[0] == 0:
         #   pass
-        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) is True) &
-                              # (timetable['див'].str.lower().str.strip().str.contains('резерв') is False) &
-                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') is False) &
-                              (timetable['счет'].str.lower().str.strip().str.contains('тп') is False)].reset_index(drop=True).copy()
+        timetable = timetable[(timetable['див'].str.lower().str.strip().str.contains('|'.join(tournaments).lower()) == True) &
+                              # (timetable['див'].str.lower().str.strip().str.contains('резерв') == False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('перенос') == False) &
+                              (timetable['счет'].str.lower().str.strip().str.contains('тп') == False)].reset_index(drop=True).copy()
 
         date = date_to_str(date)
         weekday = timetable.loc[0, 'дн']
@@ -361,7 +361,7 @@ def make_cover(background_ds, logo_ds, font_ds, font, video_types, team_1, team_
     draw = ImageDraw.Draw(cover)
 
     draw.text(
-        (640-round(vs_font.getlength('VS')/2), 360-round(vs_font.getheight('VS')/2)),
+        (640-round(vs_font.getlength('VS')/2), 335),
         'VS',
         font=vs_font,
         fill='white')
@@ -423,7 +423,7 @@ def make_many_covers(background_ds, logo_ds, font_ds, font, timetable_ds, video_
     covers = []
     for date in dates:
         timetable = timetable_ds.get_timetable(date)
-        timetable = timetable[(timetable['видео'].isna() is False) &
+        timetable = timetable[(timetable['видео'].isna() == False) &
                               (timetable['видео'] != '')].reset_index(drop=True).copy()
 
         date = date_to_str(date).lower()
