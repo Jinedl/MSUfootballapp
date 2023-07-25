@@ -365,7 +365,7 @@ def make_cover(background_ds, logo_ds, font_ds, font, video_types, team_1, team_
     draw = ImageDraw.Draw(cover)
 
     draw.text(
-        (640-round(vs_font.getlength('VS')/2), 360-round(vs_font.getheight('VS')/2)),
+        (640-round(vs_font.getlength('VS')/2), 300),
         'VS',
         font=vs_font,
         fill='white')
