@@ -669,7 +669,6 @@ class GoogleColabInput(DataSource):
         return Image.open(buf)
 
     def get_font(self, key, size):
-        worksheet = self.__ds
         if key == '':
             print(f'↓ Загрузи шрифт')
         else:
