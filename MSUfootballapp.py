@@ -1,5 +1,6 @@
 # Импортировать нужные библиотеки
 from google.colab import files
+from gspread.models import cell_list_to_rect
 import numpy as np
 import pandas as pd
 import plotly.figure_factory as ff
@@ -10,6 +11,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageChops
 import requests
 from urllib.parse import urlencode
 from bs4 import BeautifulSoup
+import re
 
 
 # Преобразования входных данных
@@ -287,24 +289,22 @@ def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, to
 def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tournament_table_ds, tournaments):
     # Создание окончательной картинки с турнирной таблицей
     picture = background_ds.get_picture('vertical').resize((1280, 1280))
-    big_font = font_ds.get_font(font, size=90)
+    big_font = font_ds.get_font(font, size=60)
     small_font = font_ds.get_font(font, size=30)
-
-    tournament_table_pictures = []
+    tournament_codes = []
     for t in tournaments:
+        tournament_codes += tournament_code_ds.get_tournament_code(t)
+    tournament_table_pictures = []
+    for tc in tournament_codes:
 
-        tournament_code = tournament_code_ds.get_tournament_code(t)
-        tournament_table = tournament_table_ds.get_tournament_table(tournament_code)
+        tournament_table = tournament_table_ds.get_tournament_table(tc)
+        tournament = tournament_table.index.name
         stage = tournament_table['И'].mode().max()
 
         tournament_table_picture = picture.copy()
 
-        div_types = {'в': 'ВЫСШИЙ', '1': 'ПЕРВЫЙ', '2': 'ВТОРОЙ', '3': 'ТРЕТИЙ'}
-        dh = t.split()[2].lower()
-        div = div_types[dh] if dh in div_types else dh.upper()
-
         draw = ImageDraw.Draw(tournament_table_picture)
-        draw.text((110, 90), f'{div} // {stage} ТУР', font=big_font, fill='white')
+        draw.text((110, 110), f'{tournament.upper()} // {stage} ТУР', font=big_font, fill='white')
         draw.text((110, 1140), tournament_to_caption(t), font=small_font, fill='white')
 
         teams = tournament_table.loc[:, 'Команда']
@@ -318,7 +318,7 @@ def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tour
         komanda = [['КОМАНДА']]
         fig = ff.create_table(komanda, height_constant=60, colorscale=colorscale_red, index=True)
         fig.layout.annotations[0].font.size = 36
-        fig.update_layout(width=446, height=60)
+        fig.update_layout(width=474, height=60)
 
         tournament_table_komanda = Image.open(BytesIO(fig.to_image(format="png")))
         tournament_table_picture.paste(tournament_table_komanda, (110, 284))
@@ -327,7 +327,7 @@ def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tour
         fig = ff.create_table(teams, height_constant=60, colorscale=colorscale_green, index=True)
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 36
-        fig.update_layout(width=446, height=60*n)
+        fig.update_layout(width=474, height=60*n)
 
         tournament_table_teams = Image.open(BytesIO(fig.to_image(format="png")))
         tournament_table_picture.paste(tournament_table_teams, (110, 284+60+6))
@@ -335,14 +335,14 @@ def make_tournament_table(background_ds, font_ds, font, tournament_code_ds, tour
         fig = ff.create_table(values, height_constant=60, colorscale=colorscale_values)
         for i in range(len(fig.layout.annotations)):
             fig.layout.annotations[i].font.size = 36
-        fig.update_layout(width=608, height=60*(1+n))
+        fig.update_layout(width=580, height=60*(1+n))
 
         tournament_table_values = Image.open(BytesIO(fig.to_image(format="png")))
         tournament_table_values = ImageChops.offset(tournament_table_values, 15, 0)
-        tournament_table_values_cols = tournament_table_values.crop((0, 0, 608, 60))
-        tournament_table_picture.paste(tournament_table_values_cols, (110+446+6, 284))
-        tournament_table_values_vals = tournament_table_values.crop((0, 60, 608, 60*(1+n)))
-        tournament_table_picture.paste(tournament_table_values_vals, (110+446+6, 284+60+6))
+        tournament_table_values_cols = tournament_table_values.crop((0, 0, 580, 60))
+        tournament_table_picture.paste(tournament_table_values_cols, (110+474+6, 284))
+        tournament_table_values_vals = tournament_table_values.crop((0, 60, 580, 60*(1+n)))
+        tournament_table_picture.paste(tournament_table_values_vals, (110+474+6, 284+60+6))
 
         tournament_table_pictures.append(tournament_table_picture)
 
@@ -646,15 +646,20 @@ class GoogleSpreadsheet(DataSource):
     def get_tournament_code(self, tournament):
 
         worksheet = self.__ds
-        tournament_code = None
+        tournament_codes = None
         try:
-            cell = worksheet.find(tournament.strip().lower())
-            tournament_code = worksheet.cell(cell.row, cell.col+1).value
+            criteria_re = re.compile(tournament.strip().lower())
+            cell_list = worksheet.findall(criteria_re)
+            if not cell_list:
+                raise Exception()
+            tournament_codes = []
+            for cell in cell_list:
+                tournament_codes.append(worksheet.cell(cell.row, cell.col+1).value)
         except:
             if self.__alternative:
                 alternative_ds = GetTournamentCode(GoogleColabInput())
-                tournament_code = alternative_ds.get_tournament_code(tournament)
-        return tournament_code
+                tournament_codes = alternative_ds.get_tournament_code(tournament)
+        return tournament_codes
 
 
 class GoogleColabInput(DataSource):
@@ -681,7 +686,13 @@ class GoogleColabInput(DataSource):
         return input(f'Введите сокращенное название для команды "{team}"\n')
 
     def get_tournament_code(self, tournament):
-        return input(f'Введите код для турнира "{tournament}"\n')
+        print(f'Водите коды для каждого турнира "{tournament}" с новой строки\n')
+        tournament_codes = []
+        s = input()
+        while s:
+            tournament_codes.append(s)
+            s = input()
+        return tournament_codes
 
 
 class FootballMSUSite(DataSource):
@@ -696,12 +707,14 @@ class FootballMSUSite(DataSource):
         try:
             url = f'http://football.msu.ru/tournament/{code.split()[0]}/tables?round_id={code.split()[1]}'
             soup = BeautifulSoup(requests.get(url).text, 'lxml')
+            tournament = soup.find('div', {'class': "tournaments-tables-title left mobile-hide"}).text.strip()
             table = soup.find('div', {'id': "tournamentTablesTable",
                               'class': "tournaments-tables-cont sfl-tab-cont mobile"}).find('table')
             rows = table.find_all('tr')
             columns = list(map(lambda x: x.text.strip(), rows[0].find_all('th')))[1:-1]
             teams = [list(map(lambda x: x.text.strip(), r.find_all('td')))[2:-1] for r in rows[1:]]
             tournament_table = pd.DataFrame(teams, columns=columns)
+            tournament_table.index.name = tournament
         except:
             if self.__alternative:
                 pass
