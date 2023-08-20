@@ -313,12 +313,12 @@ def make_tournament_table_picture(background_ds, font_ds, font, tournament_code_
 
         tournament_table = tournament_table_ds.get_tournament_table(tc)
         tournament = tournament_table.index.name
-        stage = tournament_table['И'].mode().max()
+        # stage = tournament_table['И'].mode().max()
 
         tournament_table_picture = picture.copy()
 
         draw = ImageDraw.Draw(tournament_table_picture)
-        draw.text((110, 110), f'{tournament.upper()} // {stage} ТУР', font=big_font, fill='white')
+        draw.text((110, 120), tournament.upper(), font=big_font, fill='white')
         draw.text((110, 1140), tournament_to_caption(t), font=small_font, fill='white')
 
         teams = tournament_table.loc[:, 'Команда']
