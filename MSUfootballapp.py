@@ -289,7 +289,7 @@ def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, to
         info = pd.DataFrame(tournament+' // '+stadium).values.tolist()
         fig = ff.create_table(info, height_constant=60, colorscale=colorscale_green, index=True)
         for i in range(len(fig.layout.annotations)):
-            fig.layout.annotations[i].font.size = 24
+            fig.layout.annotations[i].font.size = 22
         fig.update_layout(width=320, height=60*n)
 
         timetable_info = Image.open(BytesIO(fig.to_image(format="png")))
