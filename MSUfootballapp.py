@@ -482,31 +482,31 @@ def make_player_picture(font_ds, font, player_ds, player, text, goals, assists):
         picture.paste(mark_assist, (2, y_offset+2), mark_assist)
         draw.text((15 - ga_font.getlength(str(assists))//2, y_offset+30), str(assists), font=ga_font, fill='white')
 
-    draw.rectangle([(0, 160), (190, 210)], fill='white')
+    # draw.rectangle([(0, 160), (190, 210)], fill='white')
     player_fn = player.split()
     draw.text(
         (95 - player_font.getlength(player_fn[0])//2, 160+2 + 0*24),
         player_fn[0],
         font=player_font,
-        fill='black')
+        fill='white')
     draw.text(
         (95 - player_font.getlength(player_fn[1])//2, 160+2 + 1*24),
         player_fn[1],
         font=player_font,
-        fill='black')
+        fill='white')
 
     if text:
         text_font_size = min(int(16*23/team_len(text)), 22)
         text_font = font_ds.get_font(font).font_variant(size=text_font_size)
         text_width = min(text_font.getlength(text), 190)
-        second_name_width = min(player_font.getlength(player_fn[1]), 190)
-        text_rectangle_width = max(text_width, second_name_width)
-        draw.rectangle([(max(85 - text_rectangle_width//2, 0), 210), (min(105 + text_rectangle_width//2, 190), 235)], fill='white')
+        # second_name_width = min(player_font.getlength(player_fn[1]), 190)
+        # text_rectangle_width = max(text_width, second_name_width)
+        # draw.rectangle([(max(85 - text_rectangle_width//2, 0), 210), (min(105 + text_rectangle_width//2, 190), 235)], fill='white')
         draw.text(
             (95 - text_width//2, 208 + (27-text_font_size)//2),
             text,
             font=text_font,
-            fill='black')
+            fill='white')
 
     return picture
 
