@@ -18,7 +18,7 @@ def ds_input(input_, ds_type, alternative=False):
     # Создание источника данных для ds_type
     data_types = {'timetable': GetTimetable, 'picture': GetPicture, 'font': GetFont,
                   'shortname': GetShortname, 'tournament_table': GetTournamentTable, 'code': GetTournamentCode}
-    data_sources = {'Google Таблица': GoogleSpreadsheet, 'Загрузить вручную': GoogleColabInput, 'football.msu.ru': FootballMSUSite}
+    data_sources = {'Google Таблица': GoogleSpreadsheet, 'Загрузить вручную': GoogleColabInput, 'football.msu.ru': FootballMSUSiteOld, 'footballmsu.ru': FootballMSUSite}
     input_ = input_.split('/')
     Data = data_types[ds_type]
     Source = data_sources[input_[0]]
@@ -826,7 +826,7 @@ class GoogleColabInput(DataSource):
         return tournament_codes
 
 
-class FootballMSUSite(DataSource):
+class FootballMSUSiteOld(DataSource):
     # Класс для источника данных - http://football.msu.ru
     __alternative = False
 
@@ -837,6 +837,31 @@ class FootballMSUSite(DataSource):
         tournament_table = None
         try:
             url = f'http://football.msu.ru/tournament/{code.split()[0]}/tables?round_id={code.split()[1]}'
+            soup = BeautifulSoup(requests.get(url).text, 'lxml')
+            tournament = soup.find('div', {'class': "tournaments-tables-title left mobile-hide"}).text.strip()
+            table = soup.find('div', {'id': "tournamentTablesTable",
+                              'class': "tournaments-tables-cont sfl-tab-cont mobile"}).find('table')
+            rows = table.find_all('tr')
+            columns = list(map(lambda x: x.text.strip(), rows[0].find_all('th')))[1:-1]
+            teams = [list(map(lambda x: x.text.strip(), r.find_all('td')))[2:-1] for r in rows[1:]]
+            tournament_table = pd.DataFrame(teams, columns=columns)
+            tournament_table.index.name = tournament
+        except:
+            if self.__alternative:
+                pass
+        return tournament_table
+
+class FootballMSUSite(DataSource):
+    # Класс для источника данных - http://footballmsu.ru
+    __alternative = False
+
+    def __init__(self, alternative=False):
+        self.__alternative = alternative
+
+    def get_tournament_table(self, code):
+        tournament_table = None
+        try:
+            url = f'http://footballmsu.ru/tournament/{code.split()[0]}/tables?round_id={code.split()[1]}'
             soup = BeautifulSoup(requests.get(url).text, 'lxml')
             tournament = soup.find('div', {'class': "tournaments-tables-title left mobile-hide"}).text.strip()
             table = soup.find('div', {'id': "tournamentTablesTable",
