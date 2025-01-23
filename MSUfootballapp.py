@@ -229,13 +229,17 @@ def download_file(url):
 
 def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, tournaments, shortname_ds):
     # Создание окончательной картинки с расписанием
-    timetable_picture = background_ds.get_picture('vertical').resize((1280, 1280))
+    timetable_picture = background_ds.get_picture('vertical')
+    width, height = timetable_picture.size
+    height *= 1280 // width
+    timetable_picture = timetable_picture.resize((1280, height))
+
     big_font = font_ds.get_font(font).font_variant(size=120)
     small_font = font_ds.get_font(font).font_variant(size=30)
 
     draw = ImageDraw.Draw(timetable_picture)
     draw.text((110, 80), 'РАСПИСАНИЕ', font=big_font, fill='white')
-    draw.text((110, 1130), tournament_to_caption(tournaments), font=small_font, fill='white')
+    draw.text((110, height-150), tournament_to_caption(tournaments), font=small_font, fill='white')
 
     offset = 0
     for date in dates:
@@ -302,7 +306,11 @@ def make_timetable_picture(background_ds, font_ds, font, timetable_ds, dates, to
 
 def make_tournament_table_picture(background_ds, font_ds, font, tournament_code_ds, tournament_table_ds, tournaments):
     # Создание окончательной картинки с турнирной таблицей
-    picture = background_ds.get_picture('vertical').resize((1280, 1280))
+    picture = background_ds.get_picture('vertical')
+    width, height = picture.size
+    height *= 1280 // width
+    picture = picture.resize((1280, height))
+
     big_font = font_ds.get_font(font).font_variant(size=60)
     small_font = font_ds.get_font(font).font_variant(size=30)
     tournament_codes = []
@@ -313,13 +321,13 @@ def make_tournament_table_picture(background_ds, font_ds, font, tournament_code_
 
         tournament_table = tournament_table_ds.get_tournament_table(tc)
         tournament = tournament_table.index.name
-        # stage = tournament_table['И'].mode().max()
+        # stage = tournament_table['И'].mode().max() # Число игр
 
         tournament_table_picture = picture.copy()
 
         draw = ImageDraw.Draw(tournament_table_picture)
         draw.text((110, 120), tournament.upper(), font=big_font, fill='white')
-        draw.text((110, 1140), tournament_to_caption(t), font=small_font, fill='white')
+        draw.text((110, height-140), tournament_to_caption(t), font=small_font, fill='white')
 
         teams = tournament_table.loc[:, 'Команда']
         values = tournament_table.loc[:, ['И', 'В', 'Н', 'П', 'МЗ', 'МП', 'О']]
